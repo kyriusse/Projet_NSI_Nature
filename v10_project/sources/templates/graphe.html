@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc">
+    <h2>Page Graphe et Liaisons</h2>
+    <p>On separe bien cette page de la page Donnees pour aerer l'interface.</p>
+</section>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Liaisons</h3>
+        <table>
+            <tr><th>Source</th><th>Type</th><th>Cible</th><th>Poids p</th><th>Action</th></tr>
+            {% for liaison in liaisons %}
+            <tr>
+                <td>{{ liaison['source_nom'] }}</td>
+                <td>{{ liaison['type_liaison'] }}</td>
+                <td>{{ liaison['cible_nom'] }}</td>
+                <td>{{ liaison['poids'] }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('supprimer_liaison', liaison_id=liaison['id']) }}">
+                        <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="mini-grille">
+            <form method="post" action="{{ url_for('ajouter_liaison') }}" class="carte-formulaire">
+                <h4>Ajouter une liaison</h4>
+                <label>Source</label>
+                <select name="source_id">
+                    {% for objet in objets %}<option value="{{ objet['id'] }}">{{ objet['nom'] }}</option>{% endfor %}
+                </select>
+                <label>Type</label>
+                <select name="type_liaison">
+                    <option value="=>">=&gt;</option>
+                    <option value="<=>">&lt;=&gt;</option>
+                </select>
+                <label>Cible</label>
+                <select name="cible_id">
+                    {% for objet in objets %}<option value="{{ objet['id'] }}">{{ objet['nom'] }}</option>{% endfor %}
+                </select>
+                <label>Poids p</label>
+                <input name="poids" value="1">
+                <button type="submit">Ajouter</button>
+            </form>
+
+            <form method="post" action="{{ url_for('liaisons_rapides') }}" class="carte-formulaire">
+                <h4>Liaison rapide</h4>
+                <p class="note">Exemples : A => B ; A => (B,C,D) ; A => (B,C) => Z</p>
+                <textarea name="expression_liaisons" rows="6" placeholder="A => (B,C,D)"></textarea>
+                <label>Poids p</label>
+                <input name="poids_rapide" value="1">
+                <button type="submit">Ajouter les liaisons</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="bloc">
+        <h3>Graphe</h3>
+        <div class="zone-svg">{{ dessin|safe }}</div>
+        <h4>Reseaux detectes</h4>
+        <ul>
+            {% for composante in composantes %}
+                <li>R{{ loop.index }} : {{ composante|join(', ') }}</li>
+            {% endfor %}
+        </ul>
+        <h4>Liste d'adjacence</h4>
+        <ul>
+            {% for nom, voisins in graphe.items() %}
+                <li><strong>{{ nom }}</strong> : [{{ voisins|join(', ') }}]</li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Matrice d'adjacence</h3>
+        <table>
+            <tr>
+                <th></th>
+                {% for nom in noms %}<th>{{ nom }}</th>{% endfor %}
+            </tr>
+            {% for ligne in matrice %}
+            <tr>
+                <th>{{ noms[loop.index0] }}</th>
+                {% for valeur in ligne %}<td>{{ valeur }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    <section class="bloc">
+        <h3>Parcours et recherche de chemin</h3>
+        <form method="get" action="{{ url_for('page_graphe') }}" class="ligne-formulaire">
+            <select name="depart">
+                <option value="">Depart</option>
+                {% for objet in objets %}
+                    <option value="{{ objet['nom'] }}" {% if depart == objet['nom'] %}selected{% endif %}>{{ objet['nom'] }}</option>
+                {% endfor %}
+            </select>
+            <select name="arrivee">
+                <option value="">Arrivee</option>
+                {% for objet in objets %}
+                    <option value="{{ objet['nom'] }}" {% if arrivee == objet['nom'] %}selected{% endif %}>{{ objet['nom'] }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Lancer</button>
+        </form>
+        <p><strong>BFS :</strong> {{ bfs|join(' -> ') }}</p>
+        <p><strong>DFS :</strong> {{ dfs|join(' -> ') }}</p>
+        <p><strong>Chemin :</strong> {{ chemin|join(' -> ') }}</p>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc">
+    <h2>Page Donnees</h2>
+    <p>Cette page regroupe les tableaux a modifier souvent : objets, table d'inversion et echelle des unites.</p>
+</section>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Objets</h3>
+        <table>
+            <tr><th>Nom</th><th>Valeur</th><th>Etat</th><th>Actions</th></tr>
+            {% for objet in objets %}
+            <tr>
+                <td>
+                    <form method="post" action="{{ url_for('modifier_objet', objet_id=objet['id']) }}" class="ligne-formulaire">
+                        <input name="nom" value="{{ objet['nom'] }}">
+                </td>
+                <td><input name="valeur" value="{{ objet['valeur'] }}"></td>
+                <td><input name="etat" value="{{ objet['etat'] }}"></td>
+                <td class="actions-ligne">
+                        <button type="submit">Modifier</button>
+                    </form>
+                    <form method="post" action="{{ url_for('supprimer_objet', objet_id=objet['id']) }}">
+                        <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div class="mini-grille">
+            <form method="post" action="{{ url_for('ajouter_objet') }}" class="carte-formulaire">
+                <h4>Ajouter un objet</h4>
+                <label>Nom</label>
+                <input name="nom" placeholder="A">
+                <label>Valeur</label>
+                <input name="valeur" value="0">
+                <label>Etat</label>
+                <input name="etat" placeholder="On">
+                <button type="submit">Ajouter</button>
+            </form>
+
+            <form method="post" action="{{ url_for('ajout_rapide_objets') }}" class="carte-formulaire">
+                <h4>Ajout rapide</h4>
+                <p class="note">Exemples : A=5, B=10, C</p>
+                <textarea name="bloc_objets" rows="8" placeholder="A=5&#10;B=10&#10;C"></textarea>
+                <button type="submit">Ajouter plusieurs objets</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="bloc">
+        <h3>Table d'inversion</h3>
+        <table>
+            <tr><th>Valeur 0</th><th>Valeur 1</th><th>Action</th></tr>
+            {% for ligne in inversions %}
+            <tr>
+                <td>{{ ligne['valeur_0'] }}</td>
+                <td>{{ ligne['valeur_1'] }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('supprimer_inversion', inversion_id=ligne['id']) }}">
+                        <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <form method="post" action="{{ url_for('ajouter_inversion') }}" class="ligne-formulaire">
+            <input name="valeur_0" placeholder="On">
+            <input name="valeur_1" placeholder="Off">
+            <button type="submit">Ajouter</button>
+        </form>
+
+        <h3>Echelle des unites</h3>
+        <p class="note">On associe un tour a une duree choisie plus tard. Le tour n'est donc pas une unite.</p>
+        <table>
+            <tr><th>Rang</th><th>Unite</th><th>1 unite vaut</th><th>Action</th></tr>
+            {% for ligne in unites %}
+            <tr>
+                <td>{{ ligne['rang'] }}</td>
+                <td>{{ ligne['unite'] }}</td>
+                <td>
+                    {% if ligne['unite_du_dessous'] %}
+                        {{ ligne['facteur'] }} x {{ ligne['unite_du_dessous'] }}
+                    {% else %}
+                        unite de base
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{{ url_for('supprimer_unite', unite_id=ligne['id']) }}">
+                        <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <form method="post" action="{{ url_for('ajouter_unite') }}" class="ligne-formulaire">
+            <input name="unite" placeholder="D">
+            <input name="facteur" placeholder="5">
+            <input name="unite_du_dessous" placeholder="h">
+            <input name="rang" placeholder="6">
+            <button type="submit">Ajouter l'unite</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

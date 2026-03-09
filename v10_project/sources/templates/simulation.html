@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc">
+    <h2>Page Simulation</h2>
+    <p>On peut afficher le journal, le graphique, ou les deux a la fois. Les evenements et les paternes restent compacts tant qu'on ne les detaille pas.</p>
+</section>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Parametres de simulation</h3>
+        <form method="post">
+            <input type="hidden" name="action" value="simuler">
+            <div class="ligne-formulaire">
+                <label>Nombre de tours</label>
+                <input name="nb_tours" value="10">
+            </div>
+            <div class="ligne-formulaire">
+                <label>Valeur d'un tour</label>
+                <input name="valeur_tour" value="1">
+                <select name="unite_tour">
+                    {% for unite in unites %}
+                        <option value="{{ unite['unite'] }}">{{ unite['unite'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <label>Objets observes</label>
+            <select name="objets_observes" multiple size="10" class="grand-select">
+                {% for objet in objets %}
+                    <option value="{{ objet['nom'] }}" {% if objet['nom'] in selection_objets %}selected{% endif %}>{{ objet['nom'] }}</option>
+                {% endfor %}
+            </select>
+            <p class="note">Astuce : Ctrl + clic pour choisir seulement les objets utiles.</p>
+
+            <div class="cases">
+                <label><input type="checkbox" name="voir_journal" checked> Voir le journal de bord</label>
+                <label><input type="checkbox" name="voir_graphique" checked> Voir le graphique</label>
+            </div>
+
+            <button type="submit">Simuler</button>
+        </form>
+
+        <div class="cadre-secondaire">
+            <h4>Verification d'une conversion</h4>
+            <form method="post" class="ligne-formulaire conversion-formulaire">
+                <input type="hidden" name="action" value="verifier_conversion">
+                <input name="conversion_valeur" value="1">
+                <select name="conversion_depart">
+                    {% for unite in unites %}<option value="{{ unite['unite'] }}">{{ unite['unite'] }}</option>{% endfor %}
+                </select>
+                <span>vers</span>
+                <select name="conversion_arrivee">
+                    {% for unite in unites %}<option value="{{ unite['unite'] }}">{{ unite['unite'] }}</option>{% endfor %}
+                </select>
+                <button type="submit">Verifier</button>
+            </form>
+            {% if conversion_resultat is not none %}
+                <p class="mise-en-valeur">Resultat : {{ conversion_resultat }}</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="bloc">
+        <h3>Evenements</h3>
+        <div class="liste-cartes">
+            {% for evenement in evenements %}
+                <details class="carte-resume">
+                    <summary>{{ evenement['nom'] }} : si {{ evenement['objet_cause_nom'] }} {{ evenement['operateur'] }} {{ evenement['valeur_cause'] }}</summary>
+                    <p>Effet sur {{ evenement['objet_effet_nom'] }} : {{ evenement['type_effet'] }} {{ evenement['valeur_effet'] }}</p>
+                    <p>Poids p : {{ evenement['poids'] }} ; arrivee : tour {{ evenement['arrivee_tour'] }}</p>
+                    <form method="post">
+                        <input type="hidden" name="action" value="supprimer_evenement">
+                        <input type="hidden" name="evenement_id" value="{{ evenement['id'] }}">
+                        <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                </details>
+            {% endfor %}
+        </div>
+        <details class="carte-formulaire ouvert">
+            <summary>Ajouter un evenement</summary>
+            <form method="post" class="formulaire-compact">
+                <input type="hidden" name="action" value="ajouter_evenement">
+                <input name="nom" placeholder="Evenement_1">
+                <select name="objet_cause_id">{% for objet in objets %}<option value="{{ objet['id'] }}">Cause : {{ objet['nom'] }}</option>{% endfor %}</select>
+                <select name="type_cause"><option value="valeur_num">Cause numerique</option><option value="etat">Cause etat</option><option value="valeur">Cause texte</option></select>
+                <select name="operateur"><option value="=">=</option><option value="<"><</option><option value=">">></option></select>
+                <input name="valeur_cause" placeholder="5 ou On">
+                <input name="poids" value="1" placeholder="p ou priorite">
+                <input name="arrivee_tour" value="0" placeholder="arrivee">
+                <select name="objet_effet_id">{% for objet in objets %}<option value="{{ objet['id'] }}">Effet : {{ objet['nom'] }}</option>{% endfor %}</select>
+                <select name="type_effet"><option value="operation">Operation</option><option value="fixer_valeur">Fixer valeur</option><option value="fixer_etat">Fixer etat</option><option value="inversion">Inversion</option></select>
+                <input name="valeur_effet" placeholder="+2 ou Off">
+                <label><input type="checkbox" name="propagation_active" checked> propagation</label>
+                <input name="propagation_profondeur" value="1" placeholder="profondeur">
+                <button type="submit">Ajouter l'evenement</button>
+            </form>
+        </details>
+
+        <h3>Paternes</h3>
+        <div class="liste-cartes">
+            {% for paterne in paternes %}
+                <details class="carte-resume">
+                    <summary>{{ paterne['nom'] }} : {{ paterne['type_effet'] }} {{ paterne['valeur_effet'] }}</summary>
+                    <p>Objet : {{ paterne['objet_effet_nom'] }}</p>
+                    <p>Frequence : {{ paterne['frequence_valeur'] }} {{ paterne['frequence_unite'] }}</p>
+                    <form method="post">
+                        <input type="hidden" name="action" value="supprimer_paterne">
+                        <input type="hidden" name="paterne_id" value="{{ paterne['id'] }}">
+                        <button type="submit" class="danger">Supprimer</button>
+                    </form>
+                </details>
+            {% endfor %}
+        </div>
+        <details class="carte-formulaire ouvert">
+            <summary>Ajouter un paterne</summary>
+            <form method="post" class="formulaire-compact">
+                <input type="hidden" name="action" value="ajouter_paterne">
+                <input name="nom" placeholder="Paterne_1">
+                <select name="objet_effet_id">{% for objet in objets %}<option value="{{ objet['id'] }}">Objet : {{ objet['nom'] }}</option>{% endfor %}</select>
+                <select name="type_effet"><option value="operation">Operation</option><option value="fixer_valeur">Fixer valeur</option><option value="fixer_etat">Fixer etat</option><option value="inversion">Inversion</option></select>
+                <input name="valeur_effet" placeholder="+5">
+                <input name="frequence_valeur" placeholder="2">
+                <select name="frequence_unite">{% for unite in unites %}<option value="{{ unite['unite'] }}">{{ unite['unite'] }}</option>{% endfor %}</select>
+                <button type="submit">Ajouter le paterne</button>
+            </form>
+        </details>
+    </section>
+</div>
+
+{% if resultat %}
+<section class="bloc">
+    <h3>Resultats</h3>
+    {% if graphique_visible %}
+        <div class="zone-svg">{{ resultat['graphique']|safe }}</div>
+    {% endif %}
+
+    {% if journal_visible %}
+        <div class="journal">
+            {% for etape in resultat['historique'] %}
+                <div class="carte-journal">
+                    <h4>Tour {{ etape['tour'] }}</h4>
+                    {% if etape['actions'] %}
+                        <ul>
+                            {% for action in etape['actions'] %}
+                                <li>{{ action }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Aucune action ce tour.</p>
+                    {% endif %}
+                    <div class="etat-tour">
+                        {% for nom, contenu in etape['etat'].items() %}
+                            {% if not resultat['selection_objets'] or nom in resultat['selection_objets'] %}
+                                <span><strong>{{ nom }}</strong> = {{ contenu['valeur'] }} {% if contenu['etat'] %}({{ contenu['etat'] }}){% endif %}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ nom_app }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="entete">
+    <h1>{{ nom_app }}</h1>
+    <p class="sous-titre">Python, SQLite, graphes, simulation et algorithmique NSI</p>
+    <nav>
+        <a href="{{ url_for('page_donnees') }}">Donnees</a>
+        <a href="{{ url_for('page_graphe') }}">Graphe</a>
+        <a href="{{ url_for('page_simulation') }}">Simulation</a>
+    </nav>
+</header>
+
+<main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section class="messages">
+                {% for categorie, message in messages %}
+                    <div class="message {{ categorie }}">{{ message }}</div>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+    {% block contenu %}{% endblock %}
+</main>
+</body>
+</html>
