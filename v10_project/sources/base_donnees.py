@@ -61,7 +61,18 @@ def creer_tables() -> None:
         )
         """
     )
-
+    
+    executer(
+        """
+        CREATE TABLE IF NOT EXISTS colonnes_objets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom_colonne TEXT NOT NULL UNIQUE,
+            type_colonne TEXT NOT NULL,
+            position_affichage INTEGER NOT NULL
+        )
+        """
+    )
+    
     executer(
         """
         CREATE TABLE IF NOT EXISTS liaisons (
@@ -157,29 +168,221 @@ def inserer_unites_par_defaut() -> None:
         donnees,
     )
 
+#-----------------
+# Ici, on gère les colonnes
+# Fonction : mettre les fonctions svp...
+#---------------------------
+
+def nom_colonne_valide(nom_colonne: str) -> bool:
+    if not nom_colonne:
+        return False
+    premier = nom_colonne[0]
+    if not (premier.isalpha() or premier == "_"):
+        return False
+    for caractere in nom_colonne:
+        if not (caractere.isalnum() or caractere == "_"):
+            return False
+    noms_interdits = {
+        "id",
+        "nom",
+        "etat",
+        "valeur",
+    }
+    return nom_colonne not in noms_interdits
+
+def definition_sql_pour_type(type_site: str) -> str:
+    correspondances = {
+        "int": "INTEGER DEFAULT 0",
+        "float": "REAL DEFAULT 0",
+        "texte": "TEXT DEFAULT ''",
+    }
+    return correspondances.get(type_site, "INTEGER DEFAULT 0")
+
+def colonnes_objets_sql() -> list[str]:
+    with connexion() as con:
+        lignes = con.execute("PRAGMA table_info(objets)").fetchall()
+        return [ligne["name"] for ligne in lignes]
+
+def liste_colonnes_personnalisees() -> list[sqlite3.Row]:
+    return lire_tout(
+        """
+        SELECT * FROM colonnes_objets
+        ORDER BY position_affichage, nom_colonne
+        """
+    )
+
+def prochaine_position_colonne() -> int:
+    ligne = lire_un("SELECT COALESCE(MAX(position_affichage), 0) AS maxi FROM colonnes_objets")
+    return int(ligne["maxi"]) + 1 if ligne else 1
+
+def ajouter_colonne(nom_colonne: str, type_site: str = "int") -> None:
+    if not nom_colonne_valide(nom_colonne):
+        raise ValueError("Nom de colonne invalide.")
+
+    if nom_colonne in colonnes_objets_sql():
+        raise ValueError("Cette colonne existe deja.")
+
+    definition_sql = definition_sql_pour_type(type_site)
+
+    executer(f"ALTER TABLE objets ADD COLUMN {nom_colonne} {definition_sql}")
+
+    executer(
+        """
+        INSERT INTO colonnes_objets(nom_colonne, type_colonne, position_affichage)
+        VALUES(?,?,?)
+        """,
+        (nom_colonne, type_site, prochaine_position_colonne()),
+    )
+
+def renommer_colonne_table_objets(ancien_nom: str, nouveau_nom: str) -> None:
+    executer(f"ALTER TABLE objets RENAME COLUMN {ancien_nom} TO {nouveau_nom}")
+
+def modifier_colonne(ancien_nom: str, nouveau_nom: str) -> None:
+    if not nom_colonne_valide(nouveau_nom):
+        raise ValueError("Nouveau nom invalide.")
+
+    if ancien_nom not in [ligne["nom_colonne"] for ligne in liste_colonnes_personnalisees()]:
+        raise ValueError("Seules les colonnes personnalisees peuvent etre renommees.")
+
+    if nouveau_nom in colonnes_objets_sql():
+        raise ValueError("Ce nom existe deja.")
+
+    renommer_colonne_table_objets(ancien_nom, nouveau_nom)
+
+    executer(
+        """
+        UPDATE colonnes_objets
+        SET nom_colonne = ?
+        WHERE nom_colonne = ?
+        """,
+        (nouveau_nom, ancien_nom),
+    )
+
+#commande pour supprimer une colonne, pour s'assurer de bien respecté les contraintes SGBD, ici on recréer la BDD sans la colonne supprimées.
+def supprimer_colonne(nom_colonne: str) -> None: 
+    colonnes_personnalisees = [ligne["nom_colonne"] for ligne in liste_colonnes_personnalisees()]
+
+    if nom_colonne not in colonnes_personnalisees:
+        raise ValueError("Seules les colonnes personnalisees peuvent etre supprimees.")
+
+    colonnes_a_garder = []
+    for colonne in colonnes_objets_sql():
+        if colonne != nom_colonne:
+            colonnes_a_garder.append(colonne)
+
+    definitions = {
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "nom": "TEXT NOT NULL UNIQUE",
+        "valeur": "REAL DEFAULT 0",
+        "etat": "TEXT DEFAULT ''",
+    }
+
+    for ligne in liste_colonnes_personnalisees():
+        nom = ligne["nom_colonne"]
+        if nom == nom_colonne:
+            continue
+        definitions[nom] = definition_sql_pour_type(ligne["type_colonne"])
+
+    morceaux_creation = []
+    for colonne in colonnes_a_garder:
+        morceaux_creation.append(f"{colonne} {definitions[colonne]}")
+
+    requete_creation = "CREATE TABLE objets_nouvelle (" + ", ".join(morceaux_creation) + ")"
+    morceaux_selection = ", ".join(colonnes_a_garder)
+
+    with connexion() as con:
+        con.execute("PRAGMA foreign_keys = OFF")
+        con.execute("BEGIN")
+        con.execute(requete_creation)
+        con.execute(
+            f"INSERT INTO objets_nouvelle ({morceaux_selection}) "
+            f"SELECT {morceaux_selection} FROM objets"
+        )
+        con.execute("DROP TABLE objets")
+        con.execute("ALTER TABLE objets_nouvelle RENAME TO objets")
+        con.execute("PRAGMA foreign_keys = ON")
+        con.commit()
+
+    executer("DELETE FROM colonnes_objets WHERE nom_colonne = ?", (nom_colonne,))
+
 
 def liste_objets() -> list[sqlite3.Row]:
     return lire_tout("SELECT * FROM objets ORDER BY nom")
-
 
 def lire_objet_par_id(objet_id: int) -> sqlite3.Row | None:
     return lire_un("SELECT * FROM objets WHERE id = ?", (objet_id,))
 
 
-def ajouter_objet(nom: str, valeur: float, etat: str) -> None:
-    executer("INSERT INTO objets(nom, valeur, etat) VALUES(?,?,?)", (nom, valeur, etat))
+def preparer_valeur(type_colonne, valeur):
+    if type_colonne == "int":
+        if valeur == "":
+            return 0
+        return int(float(valeur))
+
+    if type_colonne == "float":
+        if valeur == "":
+            return 0
+        return float(valeur)
+
+    return valeur
 
 
-def modifier_objet(objet_id: int, nom: str, valeur: float, etat: str) -> None:
-    executer(
-        "UPDATE objets SET nom = ?, valeur = ?, etat = ? WHERE id = ?",
-        (nom, valeur, etat, objet_id),
-    )
+def ajouter_objet(donnees_formulaire):
+    colonnes = []
+    valeurs = []
 
+    colonnes.append("nom")
+    valeurs.append(donnees_formulaire.get("nom", ""))
+
+    colonnes_personnalisees = liste_colonnes_personnalisees()
+
+    for colonne in colonnes_personnalisees:
+        nom_colonne = colonne["nom_colonne"]
+        type_colonne = colonne["type_colonne"]
+        valeur = donnees_formulaire.get(nom_colonne, "")
+        valeur = preparer_valeur(type_colonne, valeur)
+
+        colonnes.append(nom_colonne)
+        valeurs.append(valeur)
+
+    colonnes.append("etat")
+    valeurs.append(donnees_formulaire.get("etat", ""))
+
+    colonnes.append("valeur")
+    valeurs.append(donnees_formulaire.get("valeur", 0))
+
+    texte_colonnes = ", ".join(colonnes)
+    texte_questions = ", ".join(["?"] * len(valeurs))
+
+    requete = "INSERT INTO objets (" + texte_colonnes + ") VALUES (" + texte_questions + ")"
+    executer(requete, valeurs)
+
+def modifier_objet(objet_id, donnees_formulaire):
+    morceaux = []
+    valeurs = []
+
+    morceaux.append("nom = ?")
+    valeurs.append(donnees_formulaire.get("nom", ""))
+    colonnes_personnalisees = liste_colonnes_personnalisees()
+
+    for colonne in colonnes_personnalisees:
+        nom_colonne = colonne["nom_colonne"]
+        type_colonne = colonne["type_colonne"]
+        valeur = donnees_formulaire.get(nom_colonne, "")
+        valeur = preparer_valeur(type_colonne, valeur)
+        morceaux.append(nom_colonne + " = ?")
+        valeurs.append(valeur)
+        
+    morceaux.append("etat = ?")
+    valeurs.append(donnees_formulaire.get("etat", ""))
+    morceaux.append("valeur = ?")
+    valeurs.append(donnees_formulaire.get("valeur", 0))
+    valeurs.append(objet_id)
+    requete = "UPDATE objets SET " + ", ".join(morceaux) + " WHERE id = ?"
+    executer(requete, valeurs)
 
 def supprimer_objet(objet_id: int) -> None:
     executer("DELETE FROM objets WHERE id = ?", (objet_id,))
-
 
 def liste_liaisons() -> list[sqlite3.Row]:
     return lire_tout(
@@ -192,7 +395,6 @@ def liste_liaisons() -> list[sqlite3.Row]:
         ORDER BY s.nom, c.nom
         """
     )
-
 
 def ajouter_liaison(source_id: int, cible_id: int, type_liaison: str, poids: float) -> None:
     executer(
@@ -319,3 +521,4 @@ def ajouter_paterne(
 
 def supprimer_paterne(paterne_id: int) -> None:
     executer("DELETE FROM paternes WHERE id = ?", (paterne_id,))
+
