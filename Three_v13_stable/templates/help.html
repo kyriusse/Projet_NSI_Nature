@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Help</h2>
+    <p>Cette page rassemble la documentation pratique du site Three.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Fonctionnement global</h3>
+        <ul>
+            <li>La page Donnees sert a creer les tables, les colonnes, les objets, les unites et les inversions.</li>
+            <li>La page Liaisons sert a relier les objets et a regler la conservation.</li>
+            <li>La page Graphe affiche le reseau et les parcours.</li>
+            <li>La page Composants gere les objets composes et les fusions.</li>
+            <li>La page Simulation applique les evenements et les paternes.</li>
+            <li>La page Code execute du Frank SQL.</li>
+            <li>La page Map enregistre les coordonnees geographiques.</li>
+        </ul>
+    </section>
+    <section class="bloc">
+        <h3>Bibliotheque Frank SQL</h3>
+        <div class="zone-defilement-hauteur bibliotheque-code">
+            <pre>t.Economie(prix=float ; stock=int)
+o.Usine(prix=120 ; stock=50)
+o.Port(etat=actif)
+c.prix_moyen=float
+Usine(Batterie ; Ecran)
+map{Usine(43.6 ; 3.9)}
+sim{obj(Usine ; Port)}
+evt{Commande(obj=Client ; =commande ; obj=Colis ; op=+1 ; 1)}
+pat{Production(obj=Usine ; op=+5 ; 2)}</pre>
+        </div>
+    </section>
+</div>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Tests puissants a faire</h3>
+        <ul>
+            <li>Une chaine logistique : usine, port, entrepot, client.</li>
+            <li>Une simulation de hausse des prix : production, demande, stock, inflation.</li>
+            <li>Une simulation environnementale : foret, pluie, incendie, secours.</li>
+            <li>Une simulation de discussion : calme, tension, apaisement.</li>
+        </ul>
+    </section>
+    <section class="bloc">
+        <h3>Conseils de construction</h3>
+        <ul>
+            <li>Commencer avec peu d'objets.</li>
+            <li>Verifier d'abord les colonnes et les liaisons.</li>
+            <li>Ajouter ensuite les evenements puis les paternes.</li>
+            <li>Utiliser la page Code seulement quand la structure de base est claire.</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}
