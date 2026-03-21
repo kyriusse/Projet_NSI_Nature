@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Graphe</h2>
+    <p>Cette page permet d'observer le graphe global puis de lancer un parcours depuis un objet choisi. Elle affiche aussi la liste d'adjacence et la matrice d'adjacence.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Graphe global</h3>
+        <div class="zone-svg">{{ svg|safe }}</div>
+    </section>
+    <section class="bloc">
+        <h3>Parcours</h3>
+        <form method="get" class="carte-formulaire compacte-formulaire">
+            <label>Objet de depart</label>
+            <select name="depart">{% for objet in objets_catalogue %}<option value="{{ objet['nom'] }}" {% if objet['nom'] == depart %}selected{% endif %}>{{ objet['nom'] }}</option>{% endfor %}</select>
+            <button type="submit" class="btn-mini">Lancer le parcours</button>
+        </form>
+        <h4>Parcours en largeur</h4>
+        <p>{{ parcours_largeur|join(' -> ') }}</p>
+        <h4>Parcours en profondeur</h4>
+        <p>{{ parcours_profondeur|join(' -> ') }}</p>
+    </section>
+</div>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Liste d'adjacence</h3>
+        <div class="zone-defilement-hauteur zone-defilement-hauteur-petite">
+            <table class="tableau-large">
+                <tr><th>Noeud</th><th>Voisins</th></tr>
+                {% for nom, voisins in adjacence.items() %}
+                <tr><td>{{ nom }}</td><td>{{ voisins|join(', ') }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+    <section class="bloc">
+        <h3>Matrice d'adjacence</h3>
+        <div class="zone-defilement">
+            <table class="tableau-large">
+                <tr><th></th>{% for nom in matrice['noms'] %}<th>{{ nom }}</th>{% endfor %}</tr>
+                {% for ligne in matrice['lignes'] %}
+                <tr><th>{{ ligne['nom'] }}</th>{% for valeur in ligne['valeurs'] %}<td>{{ valeur }}</td>{% endfor %}</tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
