@@ -9,10 +9,10 @@ from outils_nsi import entier_ou_defaut, reel_ou_defaut
 def colorer_code(texte):
     resultat = html.escape(texte)
     resultat = re.sub(r'(^|<br>)\s*#([^<]*)', lambda m: m.group(1) + "<span class='com'>#" + m.group(2) + '</span>', resultat)
-    mots = ['tab', 'col', 'obj', 'cp', 'evt', 'pat', 'map', 'sim', 'unite', 'ch', 'vd', 'obj=', 'col=', 'tab=', 'op=', 'change=', 'inv', 'act', 'dsc', 'lat=', 'long=', 'x=', 'y=', 't.', 'c.', 'o.']
+    mots = ['tab', 'col', 'obj', 'cp', 'evt', 'pat', 'map', 'sim', 'unite', 'ch', 'vd', 'obj=', 'col=', 'tab=', 'op=', 'change=', 'inv', 'act', 'dsc', 'lat=', 'long=', 'x=', 'y=', 't.', 'c.', 'o.','unite']
     for mot in mots:
         resultat = resultat.replace(mot, "<span class='kw'>" + mot + '</span>')
-    resultat = re.sub(r'(?<![\w>])(\d+(?:[\.,]\d+)?)', r"<span class='num'>\1</span>", resultat)
+    resultat = re.sub(r'(?<![\w>])(\d+(?:[\.,]\d+)?)', r"<span class='num'>\1</span>", resultat)#ligne généré avec une IA (Générée et Expliquée par Copilote)
     return resultat.replace('\n', '<br>')
 
 
@@ -62,6 +62,79 @@ def extraire_blocs(texte):
             indice += 1
     return blocs
 
+def traiter_fusion(element, table_cible, base_donnees):
+    parent = element.split('(', 1)[0].strip()
+    if parent == '':
+        raise ValueError('Fusion invalide : ' + element)
+    if base_donnees.objet_global_par_nom(parent) is None:
+        ajouter_objet_rapide(parent, table_cible, base_donnees)
+    contenu = element[element.find('(') + 1:-1]
+    for morceau in decouper_elements(contenu, ';'):
+        quantite = 1
+        enfant = morceau.strip()
+        if enfant == '':
+            continue
+        if '(' in enfant and enfant.endswith(')'):
+            nom_enfant = enfant.split('(', 1)[0].strip()
+            quantite = entier_ou_defaut(enfant[enfant.find('(') + 1:-1], 1)
+            enfant = nom_enfant
+        if base_donnees.objet_global_par_nom(enfant) is None:
+            ajouter_objet_rapide(enfant, table_cible, base_donnees)
+        base_donnees.ajouter_composition(parent, enfant, quantite)
+        try:
+            base_donnees.ajouter_liaison(enfant, parent, '=>', 1, 'n')
+        except Exception:
+            pass
+
+def traiter_suppression(element, table_active, base_donnees):
+    element = element.strip()
+    if element == '':
+        return
+    parametres = {}
+    morceaux = [m.strip() for m in decouper_elements(element, ',') if m.strip()]
+
+    if len(morceaux) == 1 and '=' not in morceaux[0]:
+        base_donnees.supprimer_objet_par_nom(morceaux[0])
+        return
+
+    for morceau in morceaux:
+        if '=' in morceau:
+            cle, valeur = morceau.split('=', 1)
+            parametres[cle.strip().lower()] = valeur.strip()
+
+    if 'obj' in parametres:
+        base_donnees.supprimer_objet_par_nom(parametres['obj'])
+        return
+
+    if 'tab' in parametres:
+        base_donnees.supprimer_table_nsi(normaliser_nom(parametres['tab']))
+        return
+
+    if 'ch' in parametres:
+        nom = parametres['ch']
+        for chemin in base_donnees.liste_chemins():
+            if chemin['nom'] == nom:
+                base_donnees.supprimer_chemin(chemin['id'])
+                return
+        return
+
+    if 'inv' in parametres:
+        valeur = parametres['inv'].strip()
+        if valeur.startswith('(') and valeur.endswith(')'):
+            contenu = valeur[1:-1]
+            morceaux_inv = [m.strip() for m in decouper_elements(contenu, ';') if m.strip()]
+            if len(morceaux_inv) == 2:
+                for ligne in base_donnees.liste_inversions():
+                    a = str(ligne['valeur_0']).strip()
+                    b = str(ligne['valeur_1']).strip()
+                    if (a == morceaux_inv[0] and b == morceaux_inv[1]) or (a == morceaux_inv[1] and b == morceaux_inv[0]):
+                        base_donnees.supprimer_inversion(ligne['id'])
+                        return
+        return
+
+    if 'unite' in parametres:
+        nom = normaliser_nom(parametres['unite'])
+        raise ValueError('Suppression unite non activee pour le moment : ' + nom)
 
 def decouper_elements(contenu, separateur=';'):
     elements = []
@@ -99,6 +172,49 @@ def type_depuis_valeur(valeur):
         return 'float'
     except Exception:
         return 'texte'
+
+def traiter_inversion(element, base_donnees):
+    element = element.strip()
+
+    if element == '':
+        return
+
+    if not (element.startswith('(') and element.endswith(')')):
+        raise ValueError('Syntaxe inv invalide : ' + element)
+
+    contenu = element[1:-1]
+    morceaux = [m.strip() for m in decouper_elements(contenu, ';') if m.strip()]
+
+    if len(morceaux) != 2:
+        raise ValueError('Une inversion doit contenir exactement 2 valeurs : ' + element)
+
+    valeur_0 = morceaux[0]
+    valeur_1 = morceaux[1]
+
+    base_donnees.ajouter_inversion(valeur_0, valeur_1)
+
+
+def traiter_unite(element, base_donnees):
+    element = element.strip()
+    if element == '':
+        return
+    if '(' not in element or not element.endswith(')'):
+        raise ValueError('Syntaxe unite invalide : ' + element)
+    nom_unite = normaliser_nom(element.split('(', 1)[0].strip())
+    contenu = element[element.find('(') + 1:-1]
+    morceaux = [m.strip() for m in decouper_elements(contenu, ';') if m.strip()]
+    if len(morceaux) != 2:
+        raise ValueError('Une unite doit etre de la forme unite(facteur;unite_cible) : ' + element)
+    facteur = reel_ou_defaut(morceaux[0], None)
+    cible = normaliser_nom(morceaux[1])
+    if facteur in (None, ''):
+        raise ValueError('Facteur invalide pour l unite : ' + element)
+    if cible == '':
+        raise ValueError('Unite cible invalide : ' + element)
+    if nom_unite == cible:
+        base_donnees.ajouter_unite(nom_unite, None, facteur)
+        return
+    base_donnees.ajouter_unite(nom_unite, cible, facteur)
 
 
 def executer_code(texte, base_donnees, nom_table_defaut):
@@ -152,6 +268,19 @@ def _executer_blocs(blocs, base_donnees, table_active, bilan, configuration_sim)
                 bilan.append('composition ajoutee : ' + element)
             continue
 
+        if prefixe == 'fus':
+            table_cible = table_active
+            for element in decouper_elements(contenu, ';'):
+                traiter_fusion(element, table_cible, base_donnees)
+                bilan.append('fusion ajoutee : ' + element)
+            continue
+
+        if prefixe == 'del':
+            for element in decouper_elements(contenu, ';'):
+                traiter_suppression(element, table_active, base_donnees)
+                bilan.append('suppression : ' + element)
+            continue
+
         if prefixe == 'map':
             for element in decouper_elements(contenu, ';'):
                 traiter_position(element, base_donnees)
@@ -182,6 +311,18 @@ def _executer_blocs(blocs, base_donnees, table_active, bilan, configuration_sim)
                     cle, valeur = element.split('=', 1)
                     configuration_sim[normaliser_nom(cle)] = valeur.strip()
                     bilan.append('simulation : ' + cle.strip() + '=' + valeur.strip())
+            continue
+
+        if prefixe == 'inv':
+            for element in decouper_elements(contenu, ';'):
+                traiter_inversion(element, base_donnees)
+                bilan.append('inversion ajoutee : ' + element)
+            continue
+
+        if prefixe == 'unite':
+            for element in decouper_elements(contenu, ';'):
+                traiter_unite(element, base_donnees)
+                bilan.append('unite ajoutee : ' + element)
             continue
 
         blocs_interieurs = extraire_blocs(contenu)
@@ -489,5 +630,7 @@ def traiter_paterne(element, base_donnees):
     if 'change' in parametres and action == 'op':
         action = 'change'
     valeur_effet = parametres.get('op', parametres.get('change', parametres.get('valeur_effet', '+1')))
-    frequence = entier_ou_defaut(parametres.get('f', parametres.get('frequence', '1')), 1)
+    frequence = parametres.get('f', parametres.get('frequence', '1')).strip()
+    if frequence == '':
+        frequence = '1'
     base_donnees.ajouter_paterne(nom, objet['id'], colonne_effet, action, valeur_effet, frequence)

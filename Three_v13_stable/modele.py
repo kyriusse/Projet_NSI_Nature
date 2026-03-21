@@ -42,5 +42,5 @@ class Paterne:
         self.colonne_effet = ligne['colonne_effet']
         self.action = ligne['action']
         self.valeur_effet = ligne['valeur_effet']
-        self.frequence = int(ligne['frequence'])
+        self.frequence = str(ligne['frequence']).strip()
         self.actif = int(ligne['actif'])

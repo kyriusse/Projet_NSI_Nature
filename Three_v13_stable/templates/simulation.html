@@ -35,8 +35,16 @@
             <div class="journal journal-compact">
                 {% for ligne in resultat.historique %}
                 <article class="carte-journal compacte-carte-journal">
-                    <div class="entete-tour"><h4>Tour {{ ligne.tour }}</h4><span class="badge-temps">Temps ecoule : {{ ligne.temps }}</span></div>
+                    <div class="entete-tour">
+                        <h4>Tour {{ ligne.tour }}</h4>
+                        <span class="badge-temps">Temps ecoule : {{ ligne.temps }}</span>
+                    </div>
                     <p>{% if ligne.actions %}{{ ligne.actions|join(' ; ') }}{% else %}aucune action{% endif %}</p>
+                    {% if ligne.observations %}
+                    <div class="entete-tour">
+                        <span class="badge-temps">Observations : {{ ligne.observations }}</span>
+                    </div>
+                    {% endif %}
                 </article>
                 {% endfor %}
             </div>

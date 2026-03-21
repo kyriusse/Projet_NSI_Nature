@@ -81,7 +81,7 @@ def creer_tables():
     executer('CREATE TABLE IF NOT EXISTS inversions(id INTEGER PRIMARY KEY AUTOINCREMENT, valeur_0 TEXT, valeur_1 TEXT)')
     executer('CREATE TABLE IF NOT EXISTS unites(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT UNIQUE, unite_du_dessous TEXT, facteur REAL, rang INTEGER)')
     executer('CREATE TABLE IF NOT EXISTS evenements(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT UNIQUE, objet_cause_id INTEGER, colonne_cause TEXT DEFAULT "valeur", operateur TEXT DEFAULT "=", valeur_cause TEXT DEFAULT "0", objet_effet_id INTEGER, colonne_effet TEXT DEFAULT "valeur", action TEXT DEFAULT "op", valeur_effet TEXT DEFAULT "+1", proba REAL DEFAULT 1, arrivee INTEGER DEFAULT 0, propagation INTEGER DEFAULT 0, actif INTEGER DEFAULT 1)')
-    executer('CREATE TABLE IF NOT EXISTS paternes(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT UNIQUE, objet_effet_id INTEGER, colonne_effet TEXT DEFAULT "valeur", action TEXT DEFAULT "op", valeur_effet TEXT DEFAULT "+1", frequence INTEGER DEFAULT 1, actif INTEGER DEFAULT 1)')
+    executer('CREATE TABLE IF NOT EXISTS paternes(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT UNIQUE, objet_effet_id INTEGER, colonne_effet TEXT DEFAULT "valeur", action TEXT DEFAULT "op", valeur_effet TEXT DEFAULT "+1", frequence TEXT DEFAULT "1", actif INTEGER DEFAULT 1)')
     executer('CREATE TABLE IF NOT EXISTS carte(id INTEGER PRIMARY KEY AUTOINCREMENT, objet_id INTEGER UNIQUE, latitude REAL, longitude REAL, lieu TEXT DEFAULT "")')
     executer('CREATE TABLE IF NOT EXISTS chemins(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT UNIQUE)')
     executer('CREATE TABLE IF NOT EXISTS chemin_points(id INTEGER PRIMARY KEY AUTOINCREMENT, chemin_id INTEGER, ordre_point INTEGER, type_point TEXT, nom_point TEXT, x REAL, y REAL)')
@@ -369,7 +369,13 @@ def ajouter_liaison(source_nom, cible_nom, type_liaison='=>', poids=1, conservat
     cible = objet_global_par_nom(cible_nom)
     if source is None or cible is None:
         raise ValueError('Objet introuvable pour la liaison')
-    executer('INSERT INTO liaisons(source_id, cible_id, type_liaison, poids, conservation) VALUES (?,?,?,?,?)', (source['id'], cible['id'], type_liaison, float(poids), conservation))
+    proba = float(poids)
+    if proba < 0 or proba > 1:
+        raise ValueError('La probabilite d une liaison doit etre entre 0 et 1')
+    executer(
+        'INSERT INTO liaisons(source_id, cible_id, type_liaison, poids, conservation) VALUES (?,?,?,?,?)',
+        (source['id'], cible['id'], type_liaison, proba, conservation)
+    )
 
 
 def supprimer_liaison(identifiant):
@@ -442,7 +448,7 @@ def supprimer_evenement(identifiant):
 
 
 def ajouter_paterne(nom, objet_effet_id, colonne_effet, action, valeur_effet, frequence=1):
-    executer('INSERT INTO paternes(nom, objet_effet_id, colonne_effet, action, valeur_effet, frequence) VALUES (?,?,?,?,?,?)', (nom, objet_effet_id, colonne_effet, action, valeur_effet, int(frequence)))
+    executer('INSERT INTO paternes(nom, objet_effet_id, colonne_effet, action, valeur_effet, frequence) VALUES (?,?,?,?,?,?)', (nom, objet_effet_id, colonne_effet, action, valeur_effet, str(frequence).strip() or '1'))
 
 
 def liste_paternes():
