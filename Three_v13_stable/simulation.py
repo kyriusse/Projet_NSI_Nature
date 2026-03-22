@@ -1,327 +1,325 @@
-from __future__ import annotations
+from __future__ import annotations  #permet d'utiliser des annotations de type avancées
 
-from random import random
-import math
-import re
+from random import random  #importe une fonction qui génère un nombre  entre 0 et 1
+import math  #importe des fonctions mathématiques
+import re  #importe les expressions régulières pour analyser du texte
 
-from conversions import convertir, dictionnaire_unites
-from graphe import construire_graphe
-from modele import Evenement, ObjetSimulation, Paterne
+from conversions import convertir, dictionnaire_unites  #fonctions pour gérer les conversions d'unités
+from graphe import construire_graphe  #fonction pour créer un graphe
+from modele import Evenement, ObjetSimulation, Paterne  #classes utilisées dans la simulation
 
 
-def nombre_ou_zero(valeur):
+def nombre_ou_zero(valeur):  # cette fonction convertit une valeur en nombre ou retourne 0
 
-    if valeur in (None, ''):
-        return 0.0
+    if valeur in (None, ''):  #si la valeur est vide ou qu'elle n'éxiste pas 
+        return 0.0  #retourne 0.0
 
     try:
-        return float(valeur)
+        return float(valeur)  #essaye de convertir en nombre flottant
 
-    except Exception:
-        return 0.0
+    except Exception:  #si la conversion échoue
+        return 0.0  #retourne 0.0
 
 
-def objets_etat(objets):
+def objets_etat(objets):  #transforme des données en objets utilisables
 
-    resultat = {}
+    resultat = {}  #dictionnaire qui contiendra les objets
 
-    for ligne in objets:
+    for ligne in objets:  #parcourt chaque ligne de données
 
-        nom_table = ligne.get('nom_table', '')
+        nom_table = ligne.get('nom_table', '')  #récupère le nom de la table ou un nom vide 
 
-        valeur = nombre_ou_zero(ligne.get('valeur', 0))
+        valeur = nombre_ou_zero(ligne.get('valeur', 0))  #convertit la valeur en nombre
 
-        etat = ligne.get('etat', '')
+        etat = ligne.get('etat', '')  #récupère l'état de l'objet
 
-        objet = ObjetSimulation(
-            ligne['id'],
-            ligne['nom'],
-            nom_table,
-            valeur,
-            etat
+        objet = ObjetSimulation(  #crée un objet de simulation
+            ligne['id'],  #identifiant
+            ligne['nom'],  #nom
+            nom_table,  #table associée
+            valeur,  #valeur numérique
+            etat  #etat texte
         )
 
-        for cle in ligne:
-            if cle not in ['id', 'nom', 'nom_table', 'valeur', 'etat']:
-                objet.colonnes[cle] = ligne[cle]
+        for cle in ligne:  #parcourt toutes les clés de la ligne
+            if cle not in ['id', 'nom', 'nom_table', 'valeur', 'etat']:  #si les clés sont déjà utilisées on les ignore 
+                objet.colonnes[cle] = ligne[cle]  #ajoute les autres données comme colonnes
 
-        resultat[ligne['id']] = objet
+        resultat[ligne['id']] = objet  #ajoute l'objet au dictionnaire avec son id
 
-    return resultat
-
-
-def lire_cible(objet, colonne):
-
-    if colonne == 'valeur':
-        return objet.valeur
-
-    if colonne == 'etat':
-        return objet.etat
-
-    return objet.colonnes.get(colonne, '')
+    return resultat  #retourne tous les objets
 
 
-def ecrire_cible(objet, colonne, valeur):
+def lire_cible(objet, colonne):  #lit une valeur dans un objet selon la colonne demandée
 
-    if colonne == 'valeur':
-        objet.valeur = nombre_ou_zero(valeur)
+    if colonne == 'valeur':  #si on demande la valeur principale
+        return objet.valeur  #retourne la valeur
 
-    elif colonne == 'etat':
-        objet.etat = str(valeur)
+    if colonne == 'etat':  #si on demande l'état
+        return objet.etat  #retourne l'état
+
+    return objet.colonnes.get(colonne, '')  #sinon on retourne une colonne personnalisée
+
+
+def ecrire_cible(objet, colonne, valeur):  #modifie une valeur dans un objet
+
+    if colonne == 'valeur':  #si on modifie la valeur principale
+        objet.valeur = nombre_ou_zero(valeur)  # on convertit et on assigne
+
+    elif colonne == 'etat':  #si on modifie l'état
+        objet.etat = str(valeur)  #on convertit en texte
 
     else:
-        objet.colonnes[colonne] = valeur
+        objet.colonnes[colonne] = valeur  #sinon on modifie une colonne personnalisée
 
 
-def condition_valide(objet, colonne, operateur, valeur):
+def condition_valide(objet, colonne, operateur, valeur):  #vérifie une condition par exemple: x > 5
 
-    courant = lire_cible(objet, colonne)
+    courant = lire_cible(objet, colonne)  #lit la valeur actuelle
 
     try:
-        gauche = float(str(courant).replace(',', '.'))
-        droite = float(str(valeur).replace(',', '.'))
+        gauche = float(str(courant).replace(',', '.'))  #convertit la valeur actuelle en nombre
+        droite = float(str(valeur).replace(',', '.'))  #convertit la valeur à comparer
 
-    except Exception:
-        gauche = str(courant)
+    except Exception:  #si la conversion est impossible
+        gauche = str(courant)  #on compare en texte
         droite = str(valeur)
 
-    if operateur == '=':
+    if operateur == '=':  #test égalité
         return gauche == droite
 
-    if operateur == '<':
+    if operateur == '<':  #test inférieur
         return gauche < droite
 
-    if operateur == '>':
+    if operateur == '>':  #test supérieur
         return gauche > droite
 
-    return False
+    return False  #si l'opérateur est inconnu
 
 
-def parser_nombre_operation(valeur):
+def parser_nombre_operation(valeur):  #analyse une opération comme +5 ou *2
 
-    texte = str(valeur).strip()
+    texte = str(valeur).strip() 
 
-    if len(texte) < 2:
-        return '', 0
+    if len(texte) < 2:  #si le texte est trop court
+        return '', 0  #retourne rien
 
-    return texte[0], float(texte[1:].replace(',', '.'))
+    return texte[0], float(texte[1:].replace(',', '.'))  #sépare le signe et le nombre
 
 
-def valeur_conservee(valeur_effet, expression, profondeur=1):
+def valeur_conservee(valeur_effet, expression, profondeur=1):  #calcule la valeur transmise lors d'une propagation
 
-    texte = str(expression).strip().lower().replace(' ', '')
+    texte = str(expression).strip().lower().replace(' ', '')  #nettoie l'expression exemple: n/2
 
-    if texte in ('', 'n'):
+    if texte in ('', 'n'):  #si aucune modification
+        return valeur_effet  #retourne la valeur d'origine
+
+    signe, nombre = parser_nombre_operation(valeur_effet)  #récupère le signe (+, -, etc) et le nombre
+
+    if signe == '':  #si pas d'opération valide
         return valeur_effet
 
-    signe, nombre = parser_nombre_operation(valeur_effet)
-
-    if signe == '':
-        return valeur_effet
-
-    if texte.startswith('n/'):
-        diviseur = float(texte.split('/', 1)[1].replace(',', '.'))
+    if texte.startswith('n/'):  #cas où on divise selon la profondeur 
+        diviseur = float(texte.split('/', 1)[1].replace(',', '.'))  #récupère le diviseur
 
         if diviseur != 0:
-            return signe + str(nombre / (diviseur ** profondeur))
+            return signe + str(nombre / (diviseur ** profondeur))  #applique division avec la profondeur
 
-    if texte.endswith('/n'):
-        multiplicateur = texte[:-2]
+    if texte.endswith('/n'):  #cas où on multiplie
+        multiplicateur = texte[:-2]  #récupère le multiplicateur
 
         try:
-            coeff = float(multiplicateur.replace(',', '.')) if multiplicateur else 1
+            coeff = float(multiplicateur.replace(',', '.')) if multiplicateur else 1  #convertit en nombre
         except Exception:
-            coeff = 1
+            coeff = 1  #valeur par défaut
 
-        return signe + str(nombre * coeff)
+        return signe + str(nombre * coeff)  #applique multiplication
 
-    return valeur_effet
+    return valeur_effet  #sinon on retourne la valeur inchangée
 
 
-def appliquer_action(objet, colonne, action, valeur_effet, table_inversion):
+def appliquer_action(objet, colonne, action, valeur_effet, table_inversion):  #applique une action sur un objet
 
-    journal = ''
+    journal = ''  #texte de description de l'action
 
-    courant = lire_cible(objet, colonne)
+    courant = lire_cible(objet, colonne)  #lit la valeur actuelle
 
-    if action == 'op':
+    if action == 'op':  #action mathématique (+, -, *, /)
 
-        signe = str(valeur_effet)[0]
-        nombre = float(str(valeur_effet)[1:].replace(',', '.'))
-        base = nombre_ou_zero(courant)
+        signe = str(valeur_effet)[0]  #récupère le signe
+        nombre = float(str(valeur_effet)[1:].replace(',', '.'))  #récupère la valeur numérique
+        base = nombre_ou_zero(courant)  #convertit la valeur actuelle
 
         if signe == '+':
-            base += nombre
+            base += nombre  #addition
         elif signe == '-':
-            base -= nombre
+            base -= nombre  #soustraction
         elif signe == '*':
-            base *= nombre
+            base *= nombre  #multiplication
         elif signe == '/' and nombre != 0:
-            base /= nombre
+            base /= nombre  #division
 
-        ecrire_cible(objet, colonne, base)
-        journal = objet.nom + ' : ' + colonne + ' devient ' + str(base)
+        ecrire_cible(objet, colonne, base)  #met à jour la valeur
+        journal = objet.nom + ' : ' + colonne + ' devient ' + str(base)  #message descriptif
 
-    elif action == 'change':
+    elif action == 'change':  #remplace directement la valeur
 
         ecrire_cible(objet, colonne, valeur_effet)
         journal = objet.nom + ' : ' + colonne + ' devient ' + str(valeur_effet)
 
-    elif action == 'inv':
+    elif action == 'inv':  #inverse une valeur selon une table
 
         texte = str(courant)
 
         if texte in table_inversion:
-            nouvelle_valeur = table_inversion[texte]
+            nouvelle_valeur = table_inversion[texte]  #trouve la valeur inversée
             ecrire_cible(objet, colonne, nouvelle_valeur)
             journal = objet.nom + ' : ' + colonne + ' inverse vers ' + str(nouvelle_valeur)
 
-    return journal
+    return journal  #retourne le résumé de l'action
 
 
-def profondeur_depuis_source(graphe, depart):
+def profondeur_depuis_source(graphe, depart):  #calcule la distance dans un graphe
 
-    profondeurs = {depart: 0}
-    file_attente = [depart]
+    profondeurs = {depart: 0}  #initialise avec le point de départ
+    file_attente = [depart]  #ffile pour parcours en largeur (BFS)
 
-    while file_attente:
+    while file_attente:  #tant qu'il reste des éléments à explorer
 
-        courant = file_attente.pop(0)
+        courant = file_attente.pop(0)  #prend le premier élément
 
-        for voisin in graphe.get(courant, []):
+        for voisin in graphe.get(courant, []):  #parcourt les voisins
 
-            if voisin not in profondeurs:
-                profondeurs[voisin] = profondeurs[courant] + 1
-                file_attente.append(voisin)
+            if voisin not in profondeurs:  #si pas encore visité
+                profondeurs[voisin] = profondeurs[courant] + 1  #calcule profondeur
+                file_attente.append(voisin)  #ajoute à la file
 
-    return profondeurs
-
-
+    return profondeurs  #retourne toutes les profondeurs
 
 
-def unite_de_base(dico_unites):
+def unite_de_base(dico_unites):  #trouve l'unité de base
 
-    for nom, infos in dico_unites.items():
-        if not infos['dessous']:
-            return nom
+    for nom, infos in dico_unites.items():  #parcourt les unités
+        if not infos['dessous']:  #si aucune unité en dessous
+            return nom  #c'est l'unité de base
 
-    return ''
+    return ''  #sinon rien
 
 
-def parser_duree(texte):
+def parser_duree(texte):  #analyse une durée exemple: 5s 10 min
 
-    contenu = str(texte).strip()
+    contenu = str(texte).strip()  #nettoie le texte
 
     if contenu == '':
-        return None
+        return None  #rien à analyser
 
-    resultat = re.match(r'^([+-]?[0-9]+(?:[\.,][0-9]+)?)\s*([A-Za-z_][A-Za-z0-9_]*)?$', contenu)
+    resultat = re.match(r'^([+-]?[0-9]+(?:[\.,][0-9]+)?)\s*([A-Za-z_][A-Za-z0-9_]*)?$', contenu)  
 
     if resultat is None:
-        return None
+        return None  #format invalide
 
-    valeur = float(resultat.group(1).replace(',', '.'))
-    unite = resultat.group(2) or ''
+    valeur = float(resultat.group(1).replace(',', '.'))  #récupère le nombre
+    unite = resultat.group(2) or ''  #récupère l'unité
 
-    return valeur, unite
+    return valeur, unite  # retourne les deux
 
 
-def duree_tour_en_base(valeur_tour, unite_tour, dico_unites):
+def duree_tour_en_base(valeur_tour, unite_tour, dico_unites):  # convertit la durée d'un tour en unité de base
 
     if unite_tour == '':
-        return None
+        return None  # pas d'unité
 
-    base = unite_de_base(dico_unites)
+    base = unite_de_base(dico_unites)  #trouve l'unité de base
 
     if base == '':
-        return None
+        return None  #impossible
 
-    return convertir(dico_unites, valeur_tour, unite_tour, base)
+    return convertir(dico_unites, valeur_tour, unite_tour, base)  #convertit
 
 
-def frequence_paterne_en_base(frequence, dico_unites):
+def frequence_paterne_en_base(frequence, dico_unites):  #convertit une fréquence en unité de base
 
-    resultat = parser_duree(frequence)
+    resultat = parser_duree(frequence)  #analyse la fréquence
 
     if resultat is None:
-        return None, ''
+        return None, ''  #erreur
 
     valeur, unite = resultat
 
     if unite == '':
-        return None, ''
+        return None, ''  #pas d'unité
 
     base = unite_de_base(dico_unites)
 
     if base == '':
-        return None, unite
+        return None, unite  #impossible de convertir
 
-    return convertir(dico_unites, valeur, unite, base), unite
+    return convertir(dico_unites, valeur, unite, base), unite  #retourne valeur convertit
 
 
-def nombre_declenchements_paterne(tour, frequence, valeur_tour, unite_tour, dico_unites):
+def nombre_declenchements_paterne(tour, frequence, valeur_tour, unite_tour, dico_unites):  #calcule combien de fois un paterne se déclenche
 
-    texte_frequence = str(frequence).strip()
+    texte_frequence = str(frequence).strip()  #nettoie la fréquence
 
     if texte_frequence == '':
-        texte_frequence = '1'
+        texte_frequence = '1'  #par défaut la fréquence = 1
 
-    resultat = parser_duree(texte_frequence)
+    resultat = parser_duree(texte_frequence)  #analyse la fréquence
 
     if resultat is None:
-        return 0, 'Frequence invalide : ' + texte_frequence
+        return 0, 'Frequence invalide : ' + texte_frequence  #erreur si invalide
 
     valeur_frequence, unite_frequence = resultat
 
     if valeur_frequence <= 0:
-        return 0, 'Frequence invalide : ' + texte_frequence
+        return 0, 'Frequence invalide : ' + texte_frequence  #fréquence négative interdite
 
-    if unite_frequence == '':
+    if unite_frequence == '':  #cas sans unité en nombre de tours
         frequence_tours = int(round(valeur_frequence))
 
         if frequence_tours <= 0:
             return 0, 'Frequence invalide : ' + texte_frequence
 
-        if tour % frequence_tours == 0:
+        if tour % frequence_tours == 0:  #si divisible -> déclenchement
             return 1, ''
 
         return 0, ''
 
-    duree_tour = duree_tour_en_base(valeur_tour, unite_tour, dico_unites)
+    duree_tour = duree_tour_en_base(valeur_tour, unite_tour, dico_unites)  #convertit durée du tour
 
     if duree_tour is None or duree_tour <= 0:
         return 0, 'Impossible de convertir le tour vers une unite de temps.'
 
-    frequence_reelle = frequence_paterne_en_base(texte_frequence, dico_unites)[0]
+    frequence_reelle = frequence_paterne_en_base(texte_frequence, dico_unites)[0]  #convertit fréquence
 
     if frequence_reelle is None or frequence_reelle <= 0:
         return 0, 'Unite inconnue pour la frequence : ' + unite_frequence
 
-    debut = (tour - 1) * duree_tour
-    fin = tour * duree_tour
-    epsilon = 1e-9
+    debut = (tour - 1) * duree_tour  #début du tour
+    fin = tour * duree_tour  #fin du tour
+    epsilon = 1e-9  #marge pour éviter erreurs de calcul
 
-    total_fin = int(math.floor((fin + epsilon) / frequence_reelle))
-    total_debut = int(math.floor((debut + epsilon) / frequence_reelle))
+    total_fin = int(math.floor((fin + epsilon) / frequence_reelle))  #n ombre d'événements jusqu'à fin
+    total_debut = int(math.floor((debut + epsilon) / frequence_reelle))  #jusqu'au début
 
-    return max(0, total_fin - total_debut), ''
+    return max(0, total_fin - total_debut), ''  #nombre de déclenchements
 
 
-def formater_temps(tour, valeur_tour, unite_tour):
+def formater_temps(tour, valeur_tour, unite_tour):  #transforme un tour en texte lisible
 
-    total = tour * valeur_tour
+    total = tour * valeur_tour  #calcule le temps total
     texte = str(total)
 
     if texte.endswith('.0'):
-        texte = texte[:-2]
+        texte = texte[:-2]  #enlève .0 inutile
 
     if unite_tour:
-        return texte + ' ' + unite_tour
+        return texte + ' ' + unite_tour  #ajoute unité
 
     return texte
 
 
-def analyser_observations(selection_objets, journal):
+def analyser_observations(selection_objets, journal):  #analyse ce qu'on doit observer
 
     observations = {}
 
@@ -332,12 +330,12 @@ def analyser_observations(selection_objets, journal):
         if texte == '':
             continue
 
-        if '(' not in texte or not texte.endswith(')'):
+        if '(' not in texte or not texte.endswith(')'):  #format simple
             observations[texte] = ['valeur']
             continue
 
-        nom_objet = texte.split('(', 1)[0].strip()
-        contenu = texte[texte.find('(') + 1:-1]
+        nom_objet = texte.split('(', 1)[0].strip()  #nom objet
+        contenu = texte[texte.find('(') + 1:-1]  #contenu entre parenthèses
 
         colonnes = []
         for morceau in contenu.split(';'):
@@ -348,60 +346,36 @@ def analyser_observations(selection_objets, journal):
         if len(colonnes) == 0:
             colonnes = ['valeur']
 
-        observations[nom_objet] = colonnes
+        observations[nom_objet] = colonnes  #associe objet -> colonnes
 
     return observations
 
 
-def lire_observation(etat_tour, nom_objet, nom_colonne):
-
-    if nom_objet not in etat_tour:
-        return 0.0, ''
-
-    infos = etat_tour[nom_objet]
-
-    if nom_colonne == 'valeur':
-        return nombre_ou_zero(infos['valeur']), str(infos['valeur'])
-
-    if nom_colonne == 'etat':
-        return 0.0, str(infos['etat'])
-
-    if nom_colonne in infos['colonnes']:
-        valeur = infos['colonnes'][nom_colonne]
-        return nombre_ou_zero(valeur), str(valeur)
-
-    return None, None
-
-
-def etiquette_observation(nom_objet, nom_colonne):
-
-    return nom_objet + '.' + nom_colonne
-
-
 def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb_tours, objets_observes, valeur_tour=1, unite_tour='', unites=None):
+    #fonction principale qui lance toute la simulation
 
-    etat = objets_etat(objets)
+    etat = objets_etat(objets)  #initialise les objets
 
-    table_inversion = {}
+    table_inversion = {}  #table pour inverser certaines valeurs
 
     for ligne in inversions:
         table_inversion[ligne['valeur_0']] = ligne['valeur_1']
         table_inversion[ligne['valeur_1']] = ligne['valeur_0']
 
-    catalogue = [{'nom': o.nom} for o in etat.values()]
+    catalogue = [{'nom': o.nom} for o in etat.values()]  #liste des objets
 
-    graphe, poids, conservations = construire_graphe(catalogue, liaisons)
+    graphe, poids, conservations = construire_graphe(catalogue, liaisons)  #construit les relations
 
-    evenements = [Evenement(x) for x in evenements_lignes]
-    paternes = [Paterne(x) for x in paternes_lignes]
-    dico_unites = dictionnaire_unites(unites or [])
+    evenements = [Evenement(x) for x in evenements_lignes]  #crée les événements
+    paternes = [Paterne(x) for x in paternes_lignes]  #crée les paternes
+    dico_unites = dictionnaire_unites(unites or [])  #prépare les unités
 
-    historique = []
+    historique = []  #stocke tous les résultats
+    journal_global = []  #historique des actions
 
-    journal_global = []
-    observations_demandees = analyser_observations(objets_observes, journal_global)
+    observations_demandees = analyser_observations(objets_observes, journal_global)  # Ce qu'on observe
 
-    courbes = {}
+    courbes = {}  # Données pour graphique
     premiere_colonne_graphique = {}
 
     for nom_objet, colonnes in observations_demandees.items():
@@ -409,13 +383,13 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
         etiquette = etiquette_observation(nom_objet, colonnes[0])
         courbes[etiquette] = []
 
-    for tour in range(nb_tours + 1):
+    for tour in range(nb_tours + 1):  # Boucle principale de simulation
 
-        journal = []
+        journal = []  # Actions du tour
 
-        if tour > 0:
+        if tour > 0:  # On ne fait rien au tour 0
 
-            for paterne in paternes:
+            for paterne in paternes:  # Parcourt les paternes
 
                 if paterne.actif != 1:
                     continue
@@ -450,8 +424,7 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
                         )
 
                         if txt:
-                            if nombre_declenchements == 1:
-                                journal.append('Paterne ' + paterne.nom + ' -> ' + txt)
+                            journal.append('Paterne ' + paterne.nom + ' -> ' + txt)
                             else:
                                 journal.append('Paterne ' + paterne.nom + ' (' + str(occurrence + 1) + '/' + str(nombre_declenchements) + ') -> ' + txt)
 
