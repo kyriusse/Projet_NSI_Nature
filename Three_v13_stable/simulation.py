@@ -373,9 +373,9 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
     historique = []  #stocke tous les résultats
     journal_global = []  #historique des actions
 
-    observations_demandees = analyser_observations(objets_observes, journal_global)  # Ce qu'on observe
+    observations_demandees = analyser_observations(objets_observes, journal_global)  #ce qu'on observe
 
-    courbes = {}  # Données pour graphique
+    courbes = {}  #données pour graphique
     premiere_colonne_graphique = {}
 
     for nom_objet, colonnes in observations_demandees.items():
@@ -383,13 +383,13 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
         etiquette = etiquette_observation(nom_objet, colonnes[0])
         courbes[etiquette] = []
 
-    for tour in range(nb_tours + 1):  # Boucle principale de simulation
+    for tour in range(nb_tours + 1):  #boucle principale de simulation
 
-        journal = []  # Actions du tour
+        journal = []  #actions du tour
 
-        if tour > 0:  # On ne fait rien au tour 0
+        if tour > 0:  #on ne fait rien au tour 0
 
-            for paterne in paternes:  # Parcourt les paternes
+            for paterne in paternes:  #parcourt les paternes
 
                 if paterne.actif != 1:
                     continue
@@ -428,21 +428,21 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
                             else:
                                 journal.append('Paterne ' + paterne.nom + ' (' + str(occurrence + 1) + '/' + str(nombre_declenchements) + ') -> ' + txt)
 
-            for evenement in evenements:
+                        for evenement in evenements:  #parcourt tous les événements
 
-                if evenement.actif != 1:
+                if evenement.actif != 1:  #ignore si l'événement est désactivé
                     continue
 
-                if tour < evenement.arrivee:
+                if tour < evenement.arrivee:  #vérifie si le tour est atteint
                     continue
 
-                cause = etat.get(evenement.objet_cause_id)
-                effet = etat.get(evenement.objet_effet_id)
+                cause = etat.get(evenement.objet_cause_id)  #récupère l'objet cause
+                effet = etat.get(evenement.objet_effet_id)  #récupère l'objet effet
 
-                if cause is None or effet is None:
+                if cause is None or effet is None:  #vérifie l'existence des objets
                     continue
 
-                if not condition_valide(
+                if not condition_valide(  #vérifie si la condition est respectée
                     cause,
                     evenement.colonne_cause,
                     evenement.operateur,
@@ -450,10 +450,10 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
                 ):
                     continue
 
-                if random() > evenement.proba:
+                if random() > evenement.proba:  #applique la probabilité
                     continue
 
-                txt = appliquer_action(
+                txt = appliquer_action(  #applique l'effet de l'événement
                     effet,
                     evenement.colonne_effet,
                     evenement.action,
@@ -462,28 +462,28 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
                 )
 
                 if txt:
-                    journal.append('Evenement ' + evenement.nom + ' -> ' + txt)
+                    journal.append('Evenement ' + evenement.nom + ' -> ' + txt)  #ajoute au journal
 
-                if evenement.propagation != 0:
+                if evenement.propagation != 0:  #vérifie si propagation active
 
-                    profondeurs = profondeur_depuis_source(graphe, effet.nom)
+                    profondeurs = profondeur_depuis_source(graphe, effet.nom)  #calcule les distances
 
-                    for nom_voisin, profondeur in profondeurs.items():
+                    for nom_voisin, profondeur in profondeurs.items():  #parcourt les voisins
 
-                        if profondeur == 0:
+                        if profondeur == 0:  #ignore l'objet source
                             continue
 
                         if evenement.propagation != -1 and profondeur > evenement.propagation:
-                            continue
+                            continue  #limite la propagation
 
-                        proba_liaison = poids.get((effet.nom, nom_voisin), 1)
+                        proba_liaison = poids.get((effet.nom, nom_voisin), 1)  #probabilité du lien
 
                         if random() > proba_liaison:
-                            continue
+                            continue  #test probabilité
 
-                        voisin = None
+                        voisin = None  #initialise le voisin
 
-                        for obj in etat.values():
+                        for obj in etat.values():  #recherche de l'objet voisin
                             if obj.nom == nom_voisin:
                                 voisin = obj
                                 break
@@ -491,15 +491,15 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
                         if voisin is None:
                             continue
 
-                        conservation = conservations.get((effet.nom, nom_voisin), 'n')
+                        conservation = conservations.get((effet.nom, nom_voisin), 'n')  #règle de conservation
 
-                        valeur_transmise = valeur_conservee(
+                        valeur_transmise = valeur_conservee(  #calcule la valeur propagée
                             evenement.valeur_effet,
                             conservation,
                             profondeur
                         )
 
-                        txt = appliquer_action(
+                        txt = appliquer_action(  #applique sur le voisin
                             voisin,
                             evenement.colonne_effet,
                             evenement.action,
@@ -514,16 +514,16 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
                                 ' (' + conservation + ') -> ' + txt
                             )
 
-        etat_tour = {}
+        etat_tour = {}  #stocke l'état à ce tour
 
-        for obj in etat.values():
-            etat_tour[obj.nom] = {
+        for obj in etat.values():  #parcourt tous les objets
+            etat_tour[obj.nom] = {  #sauvegarde leurs données
                 'valeur': obj.valeur,
                 'etat': obj.etat,
                 'colonnes': dict(obj.colonnes)
             }
 
-        observations_tour = {}
+        observations_tour = {}  #stocke les observations
 
         for nom_objet, colonnes in observations_demandees.items():
 
@@ -546,7 +546,7 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
             if valeur_num is None:
                 valeur_num = 0.0
 
-            courbes[etiquette].append(valeur_num)
+            courbes[etiquette].append(valeur_num)  #ajoute au graphique
 
         observations_txt = []
         for nom_objet, valeurs in observations_tour.items():
@@ -556,8 +556,10 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
             observations_txt.append(
                 nom_objet + '(' + ' ; '.join(morceaux) + ')'
             )
+
         texte_observations = ' | '.join(observations_txt)
-        historique.append({
+
+        historique.append({  #ajoute les données du tour
             'tour': tour,
             'temps': formater_temps(tour, valeur_tour, unite_tour),
             'actions': journal,
@@ -565,29 +567,29 @@ def simuler(objets, liaisons, evenements_lignes, paternes_lignes, inversions, nb
             'observations': texte_observations
         })
 
-    return historique, courbes
+    return historique, courbes  #résultat final
 
 
-def svg_graphique(courbes, unite_temps='tour', unite_valeur='valeur'):
+def svg_graphique(courbes, unite_temps='tour', unite_valeur='valeur'):  #génère un graphique en SVG
 
-    largeur = 760
-    hauteur = 320
+    largeur = 760  #largeur du graphique
+    hauteur = 320  #hauteur du graphique
 
     if not courbes:
-        return "<svg width='760' height='80'></svg>"
+        return "<svg width='760' height='80'></svg>"  #cas vide
 
     courbes_numeriques = {}
 
     for nom, valeurs in courbes.items():
-        courbes_numeriques[nom] = [nombre_ou_zero(v) for v in valeurs]
+        courbes_numeriques[nom] = [nombre_ou_zero(v) for v in valeurs]  #conversion en nombres
 
-    maxi = max([max(valeurs) if valeurs else 0 for valeurs in courbes_numeriques.values()] + [1])
-    mini = min([min(valeurs) if valeurs else 0 for valeurs in courbes_numeriques.values()] + [0])
+    maxi = max([max(valeurs) if valeurs else 0 for valeurs in courbes_numeriques.values()] + [1])  #max
+    mini = min([min(valeurs) if valeurs else 0 for valeurs in courbes_numeriques.values()] + [0])  #min
 
-    amplitude = maxi - mini if maxi != mini else 1
-    nb_points = max([len(valeurs) for valeurs in courbes_numeriques.values()] + [1])
+    amplitude = maxi - mini if maxi != mini else 1  #évite division par zéro
+    nb_points = max([len(valeurs) for valeurs in courbes_numeriques.values()] + [1])  #nombre de points
 
-    couleurs = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2']
+    couleurs = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#0891b2']  #liste de couleurs
 
     lignes = [
         f"<svg width='{largeur}' height='{hauteur}' viewBox='0 0 {largeur} {hauteur}'>",
@@ -634,4 +636,4 @@ def svg_graphique(courbes, unite_temps='tour', unite_valeur='valeur'):
 
     lignes.append('</svg>')
 
-    return ''.join(lignes)
+    return ''.join(lignes)  #retourne le SVG final
