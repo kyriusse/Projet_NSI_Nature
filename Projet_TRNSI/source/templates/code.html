@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Code - Frank SQL</h2>
+    <p>Cette page permet de piloter rapidement le projet avec le mini-langage Frank SQL. Les autres ajouts rapides restent specifiques a leur page, tandis qu'ici on travaille directement avec le langage.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Editeur Frank SQL</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <textarea name="code_frank" rows="28" class="zone-code" placeholder="tab{
+Economie(prix=float;stock=int;etat=texte)
+}&#10;o.Usine(prix=100 ; stock=50)&#10;o.Client(etat=commande)&#10;Usine(Client)&#10;map{Usine(43.6 ; 3.9)}&#10;sim{obj(Usine ; Client)}">{{ code }}</textarea>
+            <button type="submit" class="btn-mini">Executer le code</button>
+        </form>
+    </section>
+    <section class="bloc">
+        <h3>Bibliotheque Frank SQL</h3>
+        <div class="zone-defilement-hauteur bibliotheque-code">
+            <p><strong>Creer une table</strong></p>
+            <pre>tab{
+Economie(prix=float;stock=int;etat=texte)
+}</pre>
+            <p><strong>Ajouter un objet</strong></p>
+            <pre>obj{
+Usine(prix=120,stock=50);
+Client(etat=commande)
+}</pre>
+            <p><strong>Ajouter une colonne</strong></p>
+            <pre>col{
+prix_moyen=float;
+stock=int
+}</pre>
+            <p><strong>Creer des composants</strong></p>
+            <pre>cp{
+Smartphone(Batterie,Ecran,Coque)
+}</pre>
+            <p><strong>Ajouter une position</strong></p>
+            <pre>map{
+Usine(x=152,y=87);
+Port(x=58,y=43)
+}</pre>
+            <p><strong>Selection de simulation</strong></p>
+            <pre>ch{
+Livraison(Usine,px(58;87),Client)
+}</pre>
+            <p><strong>Evenement</strong></p>
+            <pre>evt{Commande(obj=Client ; =acheter ; obj=Colis ; op=+1 ; 1)}</pre>
+            <p><strong>Paterne</strong></p>
+            <pre>pat{Production(obj=Usine ; op=+5 ; 2)}</pre>
+        </div>
+    </section>
+</div>
+{% if bilan %}
+<section class="bloc"><h3>Bilan de l'execution</h3><ul>{% for ligne in bilan %}<li>{{ ligne }}</li>{% endfor %}</ul></section>
+{% endif %}
+{% if code_colore %}
+<section class="bloc"><h3>Coloration Frank SQL</h3><div class="code-colore">{{ code_colore|safe }}</div></section>
+{% endif %}
+{% endblock %}

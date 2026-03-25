@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nom_app }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="entete-principale">
+    <div class="entete-ligne">
+        <div>
+            <h1>{{ nom_app }}</h1>
+            <p class="sous-titre">BONJOUR MONDE ! simulateur Tree - Python, SQLite, graphes et Frank SQL</p>
+        </div>
+        <div class="badge-univers">univers : {{ univers_actuel }}</div>
+    </div>
+    <nav class="navigation-principale">
+        <a href="{{ url_for('index') }}">Index</a>
+        <a href="{{ url_for('page_donnees') }}">Donnees</a>
+        <a href="{{ url_for('page_liaisons') }}">Liaisons</a>
+                <a href="{{ url_for('page_composants') }}">Composants</a>
+        <a href="{{ url_for('page_simulation') }}">Simulation</a>
+        <a href="{{ url_for('page_code') }}">Code</a>
+        <a href="{{ url_for('page_map') }}">Map</a>
+        <a href="{{ url_for('page_help') }}">Help</a>
+    </nav>
+</header>
+<main class="contenu-principal">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section class="messages">
+                {% for categorie, message in messages %}
+                    <div class="message {{ categorie }}">{{ message }}</div>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+    {% block contenu %}{% endblock %}
+</main>
+</body>
+</html>

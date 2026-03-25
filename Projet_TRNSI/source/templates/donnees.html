@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Donnees</h2>
+    <p>Cette page regroupe les tables, les colonnes, les objets, les unites et les inversions. Ici, c'est la base de votre simulation</p>
+</section>
+
+<section class="bloc bloc-compact">
+    <div class="barre-section">
+        <div>
+            <h3>Tables</h3>
+            <p class="note">Table active : <strong>{{ table_active }}</strong></p>
+        </div>
+        <form method="post" class="ligne-formulaire compacte">
+            <input type="hidden" name="action" value="creer_table">
+            <input name="nom_table_nouvelle" placeholder="Nouvelle table : Economie">
+            <button type="submit" class="btn-mini">Creer</button>
+        </form>
+    </div>
+    <div class="zone-defilement-hauteur zone-defilement-hauteur-petite">
+        <table class="tableau-large">
+            <tr><th>Table</th><th>Ouverture</th><th>Suppression</th></tr>
+            {% for ligne in tables %}
+            <tr>
+                <td>{{ ligne['nom_table'] }}{% if ligne['est_principale'] == 1 %} (principale){% endif %}</td>
+                <td><a class="btn-mini" href="{{ url_for('page_donnees', table=ligne['nom_table']) }}">Ouvrir</a></td>
+                <td>
+                    {% if ligne['est_principale'] != 1 %}
+                    <form method="post" class="inline">
+                        <input type="hidden" name="action" value="supprimer_table">
+                        <input type="hidden" name="nom_table" value="{{ ligne['nom_table'] }}">
+                        <button type="submit" class="btn-mini">Supprimer</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+
+<section class="bloc bloc-principal-donnees">
+    <div class="barre-section">
+        <div>
+            <h3>Objets de la table {{ table_active }}</h3>
+            <p class="note">Le tableau principal affiche directement les donnees de la table choisie.</p>
+        </div>
+    </div>
+    <div class="zone-defilement zone-haute">
+        <table class="tableau-large">
+            <tr>
+                {% if objets %}
+                    {% for cle in objets[0].keys() %}<th>{{ cle }}</th>{% endfor %}
+                {% else %}
+                    {% for cle in colonnes_physiques %}<th>{{ cle }}</th>{% endfor %}
+                {% endif %}
+                <th>Suppression</th>
+            </tr>
+            {% for objet in objets %}
+            <tr>
+                {% for cle in objet.keys() %}
+                    <td>{{ objet[cle] }}</td>
+                {% endfor %}
+                <td>
+                    <form method="post" class="inline">
+                        <input type="hidden" name="action" value="supprimer_objet">
+                        <input type="hidden" name="nom_objet" value="{{ objet['nom'] }}">
+                        <button type="submit" class="btn-mini">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+
+<div class="mini-grille">
+    <section class="bloc">
+        <h3>Colonnes de {{ table_active }}</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_colonne">
+            <input type="hidden" name="table" value="{{ table_active }}">
+            <label>Nom</label><input name="nom_colonne" placeholder="prix_moyen">
+            <label>Type</label>
+            <select name="type_colonne"><option value="texte">texte</option><option value="int">int</option><option value="float">float</option></select>
+            <label>Valeur par defaut</label><input name="valeur_defaut" placeholder="0 ou normal">
+            <button type="submit" class="btn-mini">Ajouter la colonne</button>
+        </form>
+        <div class="zone-defilement-hauteur zone-defilement-hauteur-petite">
+            <table class="tableau-large">
+                <tr><th>Nom</th><th>Type</th><th>VD</th><th>Action</th></tr>
+                {% for colonne in colonnes %}
+                <tr>
+                    <td>{{ colonne['nom_colonne'] }}</td>
+                    <td>{{ colonne['type_colonne'] }}</td>
+                    <td>{{ colonne['valeur_defaut'] }}</td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="action" value="supprimer_colonne">
+                            <input type="hidden" name="table" value="{{ table_active }}">
+                            <input type="hidden" name="nom_colonne" value="{{ colonne['nom_colonne'] }}">
+                            <button type="submit" class="btn-mini">Supprimer</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if 'valeur' in colonnes_physiques %}
+                <tr><td>valeur</td><td>float</td><td>0</td><td><form method="post" style="display:inline;"><input type="hidden" name="action" value="supprimer_colonne"><input type="hidden" name="table" value="{{ table_active }}"><input type="hidden" name="nom_colonne" value="valeur"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+                {% endif %}
+                {% if 'etat' in colonnes_physiques %}
+                <tr><td>etat</td><td>texte</td><td></td><td><form method="post" style="display:inline;"><input type="hidden" name="action" value="supprimer_colonne"><input type="hidden" name="table" value="{{ table_active }}"><input type="hidden" name="nom_colonne" value="etat"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+                {% endif %}
+            </table>
+        </div>
+    </section>
+
+    <section class="bloc">
+        <h3>Ajouter un objet</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_objet">
+            <input type="hidden" name="table" value="{{ table_active }}">
+            <label>Nom</label><input name="nom" placeholder="A">
+            {% if 'valeur' in colonnes_physiques %}
+            <label>Valeur</label><input name="valeur" value="0">
+            {% endif %}
+            {% if 'etat' in colonnes_physiques %}
+            <label>Etat</label><input name="etat" placeholder="normal">
+            {% endif %}
+            {% for colonne in colonnes %}
+                <label>{{ colonne['nom_colonne'] }}</label><input name="{{ colonne['nom_colonne'] }}">
+            {% endfor %}
+            <button type="submit" class="btn-mini">Ajouter l'objet</button>
+        </form>
+    </section>
+
+    <section class="bloc">
+        <h3>Ajout rapide des objets</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajout_rapide">
+            <input type="hidden" name="table" value="{{ table_active }}">
+            <p class="note">Exemples : A ; B=5 ; C(prix=8 ; etat=on) ; A =&gt; B</p>
+            <textarea name="bloc_objets" rows="9" placeholder="A&#10;B=5&#10;Usine(prix=120 ; stock=50)&#10;A => B"></textarea>
+            <button type="submit" class="btn-mini">Executer</button>
+        </form>
+    </section>
+</div>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Unites</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_unite">
+            <label>Nom</label><input name="nom_unite" placeholder="h">
+            <label>Unite du dessous</label><input name="unite_dessous" placeholder="min">
+            <label>Combien de fois l'unite du dessous</label><input name="facteur" placeholder="60">
+            <button type="submit" class="btn-mini">Ajouter l'unite</button>
+        </form>
+        <div class="liste-resumes">
+            {% for unite in unites %}
+                <span class="pill-resume">
+                {% if unite['unite_du_dessous'] %}
+                    1 {{ unite['nom'] }} = {{ unite['facteur'] }} {{ unite['unite_du_dessous'] }}
+                {% else %}
+                    {{ unite['nom'] }} : unite de base
+                {% endif %}
+                </span>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="bloc">
+        <h3>Inversions</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_inversion">
+            <label>Valeur 0</label><input name="valeur_0" placeholder="Off">
+            <label>Valeur 1</label><input name="valeur_1" placeholder="On">
+            <button type="submit" class="btn-mini">Ajouter l'inversion</button>
+        </form>
+        <div class="zone-defilement-hauteur zone-defilement-hauteur-petite">
+            <table class="tableau-large">
+                <tr><th>Valeur 0</th><th>Valeur 1</th><th>Suppression</th></tr>
+                {% for ligne in inversions %}
+                <tr><td>{{ ligne['valeur_0'] }}</td><td>{{ ligne['valeur_1'] }}</td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_inversion"><input type="hidden" name="id_inversion" value="{{ ligne['id'] }}"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

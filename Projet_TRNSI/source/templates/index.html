@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Index</h2>
+    <p>Choisir un univers. Chaque univers possede sa propre base de donnees et permet donc de travailler sur un projet different sans melanger les donnees.</p>
+</section>
+<div class="grille-3">
+    {% for ligne in univers %}
+    <section class="bloc carte-univers">
+        <h3>{{ ligne.nom }}</h3>
+        {% if ligne.existe %}
+            <p class="note">Cet univers existe deja.</p>
+            <p><a class="bouton-lien" href="{{ url_for('ouvrir_univers', nom_univers=ligne.nom) }}">Ouvrir</a></p>
+            <form method="post" action="{{ url_for('reinitialiser_univers', nom_univers=ligne.nom) }}">
+                <button type="submit" class="btn-mini danger">Reinitialiser</button>
+            </form>
+        {% else %}
+            <p class="note">Cet univers n'a pas encore ete cree. Le premier clic le cree automatiquement.</p>
+            <p><a class="bouton-lien" href="{{ url_for('ouvrir_univers', nom_univers=ligne.nom) }}">Creer et ouvrir</a></p>
+        {% endif %}
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

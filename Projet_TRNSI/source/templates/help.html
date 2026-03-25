@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Help</h2>
+    <p>Cette page rassemble la documentation pratique du site Three.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Fonctionnement global</h3>
+        <ul>
+            <h3>Page Donnes</h3>
+            <li>La page Donnees sert a creer les tables, les colonnes, les objets, les unites et les inversions.</li>
+            <li>ajout rapide : sert à ajouter des objets rapidements (sans blague!)</li>
+            <li>Table d'unités : Ce sont les unités pour la simulation, elles servent à faire les conversion</li>
+            <li>Table d'inversion : Table dans laquelle on stock les inversions. La simulation comprend que l'inverse de la valeur 0 est la valeur 1 et réciproquement.</li>
+            <h3>Page Liaisons</h3>
+            <li>La page Liaisons sert a relier les objets et a regler la conservation.</li>
+            <li>2 types de liasons "=>" et "<=>" Ex: A=>B veut dire que A est lié à B mais pas l'inverse. Contrairement à A <=> voir synthaxe dans la bibliotheque Frank SQL</li>
+            <li>Elle affiche les liaisons sous forme de graphe.</li>
+            <li>Une liaison est toujours constitué d'une probabilite p comprise dans [0;1] de 1 par défaut</li>
+            <li>Elle peut aussi avoir une conservation c qui définit comment va être conserver la valeur transmise dans le réseau</li>
+            <h3>Page Composants</h3>
+            <li>La page Composants gere les objets composes et les fusions.</li>
+            <li>Quand un objet A devient composants d'un autre objet B, soit A(B) on obtient une liaison A => B</li>
+            <li>On représente l'objet et ses composants sous forme d'abre (on peut définir le nombre max de branche visible)</li>
+            <li>La fusion est une opération qui permet de faire de créer un nouvelle objet à partir d'autre objets qui deviennent ainsi ses composants, c'est comme une compo classique mais on crée l'objet. Pour la fusion, on peut quantifié sans mettre de ()</li>
+            <h3>Page Simulation</h3>
+            <li>La page Simulation applique les evenements et les paternes.</li>
+            <li>Un événement est de la forme Si ... Alors Faire ... avec une proba de ... à partir du tour ... </li>
+            <li>Un événement dépend d'une cause et d'une conséquence, la cause est construite sous forme de cible + observation et la conséquence sous la forme cible + action et ensuite après on ajoute des paramètre tel que la proba p de 1 par défaut, la propagation (en gros le nombre de sommets du graphe qui vont être impacté par l'évennement) écrire all pour tous les choisir, et l'arrivée dans la simulation (de 0 par défaut)</li>
+            <li>Les types d'Actions : Inversion (on inverse la valeur en utilisant la table d'inversion), Opération (opération classique style +8 -7 *0.58 /2), Changer : change la valeur cible par une autre</li>
+            <li>Les paternes sont des action qu'ont effectuent à une fréquences, si on précise pas l'unité cette fréquence est en tour</li>
+            <li>Quand on simule on choisit le nombre de tour que l'on souhaite observer et la valeur d'un tour, exemple 1tour = 6s et tu choisis 10 tours donc tu verra l'évolution de la simulation sur 1min, en 10 tours.</li>
+            <li>On choisit aussi un objet dans la liste des objets. Dans l'ajout rapide, vous pouvez mettre objet(colonne1 ; colonne2...); objet2(colone1) pour cibler les objets que vous souhaitez observer dans la simulation. Attention le graphique affiche en ordo. seulement la première colonne rentrée</li>
+            <li>On obtient donc un journal tours par tours avec le temps + un graphique</li>
+            <h3>Page Code</h3>
+            <li>La page Code execute du Frank SQL.</li>
+            <li>Voir la Bibliotheque Frank SQL</li>
+            <h3>Page Map</h3>
+            <li>La page Map enregistre les coordonnees geographiques d'un objet.</li>
+            <li>On a choisit la map du monde pour l'exemple, mais ce n'est pas obligatoire, en effet l'espace créer est virtuelle et sert surtout à rendre "reel" ou "existant" un objet, et à bien d'autre action/logique dans un espace</li>
+            <li>On peut visionner des chemins créer dans la page Code en Frank SQL</li>
+        </ul>
+    </section>
+    <section class="bloc">
+        <h3>Bibliotheque Frank SQL</h3>
+        <div class="zone-defilement-hauteur bibliotheque-code">
+            <pre>
+
+Separateur principal : ";"
+Separateur de parametre : ","
+
+tab{Economie(prix=float ; stock=int)}
+t.Economie{obj{}}
+c.Economie{col{}}
+o.Economie{obj{}}
+
+col{
+colonne_1(valeur_obj1 ; valeur_obj2);
+colonne_2=float,vd=0
+}
+
+obj{
+objet(colonne=valeur;colonne=valeur);
+objet2(valeur1;valeur2;valeur3);
+
+objet=>objet2,p=probabilite entre [0 et 1],c=n
+objet<=>objet2,p=probabilite entre [0 et 1],c=n
+
+A=>B=>C
+A=>(B;C)
+A<=>(B;C)
+}
+
+cp{
+objet(composant_1;composant_2)
+objet(composant_1(quantite);composant_2(quantite))
+}
+# les composants sont relies vers l'objet avec une liaison "=>"
+# on peut ajouter une quantite aux composants avec composant(quantite)
+
+fus{
+objet_cree(objet_1;objet_2)
+objet_cree(objet_1(2);objet_2;objet_3)
+}
+#une fusions : on prend des objets et on en créée un nouveaux avec, ces objets deviennent ainsi des composants du nouvelle objet
+
+inv{
+(valeur1 ; valeur2);
+(On ; Off);
+(Vivant ; Mort)
+}
+# definit les inversions possibles
+# si une valeur est inversee elle prend l'autre valeur definie ici
+
+unite{
+seconde(1;seconde);
+minute(60;seconde);
+heure(60;minute);
+jour(24;heure)
+}
+# unite(facteur;unite_cible)
+# permet de definir les equivalences entre unites
+# une unite de base peut etre definie par unite(1;elle_meme)
+
+map{
+Objet(x=100,y=50)
+}
+# map{} positionne un objet existant
+# x et y doivent etre ecrits avec "="
+# l'objet doit deja exister
+# permet de faire des actions avec dans un espace
+
+ch{
+nom_chemin(objet_place1;objet_place2)
+nom_chemin(objet_place1;px(x=10,y=20);px(x=80,y=40);objet_place2)
+nom_chemin(objet_place1;px(10;20);px(80;40);objet_place2)
+}
+# cree un chemin entre au moins 2 points
+# un point peut etre un objet deja positionne avec map{}
+# ou un point libre avec px(...)
+# si un objet n'a pas de coordonnees definies avec map{}, il n'est pas utilise dans le chemin
+
+evt{
+nom_event(obj=cause;obj=effet;col=colonne_observee;test=operateur;si=valeur;
+col_effet=colonne_modifiee;action=op;op=+1;p=1;arrivee=0;propagation=0)
+}
+# obj= est utilise 2 fois :
+# le 1er obj = objet cause
+# le 2eme obj = objet effet
+
+pat{
+nom_paterne(obj=objet;col=colonne;action=op;op=+1;f=2)
+}
+# f peut etre une frequence simple en tours
+# ex : f=2
+# ou une frequence avec unite
+# ex : f=1s ; f=1min
+
+del{
+obj=nom_objet;
+tab=nom_table;
+ch=nom_chemin;
+inv=(valeur_1;valeur_2)
+}
+# supprime un element
+# la suppression respecte les contraintes de la base
+# pour inv il faut donner les 2 valeurs
+
+
+sim{
+nb_tours=10;
+valeur_tour=1;
+unite_tour=s
+}
+# bloc de configuration de simulation, ce bloc n'est pas utile pour l'instant, il n'est que théorique. Il servira dans une extention du projet possible.
+#Pour l'instant, il sert également à montrer à un autre utilisateur, les paramètres à mettre dans la simulation, en gros ceux qu'il veut qu'on observe. 
+
+
+action :
+op : operation sur une valeur numerique
+change : remplace la donnee par une autre
+inv : inversion de la donnee (table d'inversion)
+
+variables :
+p : probabilite comprise dans [0 ; 1]
+c : conservation, n represente la valeur de l'operation effectuee sur l'objet precedent
+vd : valeur par defaut, exemple : vd=0 signifie que la valeur par defaut de la colonne est 0
+obj : objet
+col : colonne
+tab : table
+f : frequence
+x : position horizontale
+y : position verticale
+
+On separe les variables avec ","
+On separe les elements avec ";"
+
+types :
+texte : texte
+int : entier
+float : reel
+
+Synthax liaisons :
+Elles se font dans le bloc obj{} ou dans l'ajout rapide de liaisons.
+
+Soit les objets : A, B, C, D
+
+A=>B signifie que si A est touche par un evenement ou un paterne, B peut l'etre aussi selon la propagation.
+A<=>B signifie que la liaison existe dans les deux sens.
+A=>B=>C equivaut a A=>B ; B=>C
+A=>(B;C) equivaut a A=>B ; A=>C
+A<=>(B;C) cree des liaisons bidirectionnelles entre A et B, puis A et C
+
+C'est pourquoi les composants sont de la forme :
+(Composants)=>Objet_cible
+ou, dans cp{}, les composants sont automatiquement relies vers l'objet parent.
+
+Synthax si plusieurs tables :
+Si plusieurs tables, il faut preciser le nom de la table avec :
+t.nom_table{tab{}}
+c.nom_table{col{}}
+o.nom_table{obj{}}
+
+ou plus simplement :
+
+nom_table{
+col{}
+obj{}
+}
+
+</pre>
+        </div>
+    </section>
+</div>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Tests puissants a faire</h3>
+        <ul>
+            <li>Une chaine logistique : usine, port, entrepot, client.</li>
+            <li>Une simulation de hausse des prix : production, demande, stock, inflation.</li>
+            <li>Une simulation environnementale : foret, pluie, incendie, secours.</li>
+            <li>Une simulation de discussion : calme, tension, apaisement.</li>
+            <li>Une simulation montrant l'impact économique de la fabriquation et de l'achat d'un objet sur l'environnement</li>
+            <li>Une simulation montrant l'évolution des espèces</li>
+        </ul>
+    </section>
+    <section class="bloc">
+        <h3>Conseils de construction</h3>
+        <ul>
+            <li>Commencer avec peu d'objets.</li>
+            <li>Verifier d'abord les colonnes et les liaisons.</li>
+            <li>Ajouter ensuite les evenements puis les paternes.</li>
+            <li>Utiliser la page Code seulement quand la structure de base est claire.</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

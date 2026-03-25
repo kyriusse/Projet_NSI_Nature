@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Liaisons</h2>
+    <p>Une liaison relie un objet source a un objet cible. La conservation permet de definir comment une operation se transmet dans le reseau.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Ajouter une liaison</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter">
+            <label>Source</label><select name="source_nom">{% for objet in objets_catalogue %}<option value="{{ objet['nom'] }}">{{ objet['nom'] }}</option>{% endfor %}</select>
+            <label>Cible</label><select name="cible_nom">{% for objet in objets_catalogue %}<option value="{{ objet['nom'] }}">{{ objet['nom'] }}</option>{% endfor %}</select>
+            <label>Type</label><select name="type_liaison"><option value="=>">=&gt;</option><option value="<=>">&lt;=&gt;</option></select>
+            <label>Probabilite</label><input name="poids" value="1">
+            <label>Conservation</label><input name="conservation" value="n" placeholder="Exemple : 2/n">
+            <button type="submit" class="btn-mini">Ajouter la liaison</button>
+        </form>
+        <hr>
+        <h3>Ajout rapide</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajout_rapide">
+            <textarea name="bloc_liaisons" rows="6" placeholder="A => B&#10;B <=> C"></textarea>
+            <button type="submit" class="btn-mini">Executer</button>
+        </form>
+    </section>
+    <section class="bloc">
+        <h3>Graphe des liaisons</h3>
+        <div class="zone-svg">{{ svg|safe }}</div>
+    </section>
+</div>
+<section class="bloc">
+    <h3>Tableau des liaisons</h3>
+    <div class="zone-defilement-hauteur">
+        <table class="tableau-large">
+            <tr><th>Source</th><th>Type</th><th>Cible</th><th>p</th><th>Conservation</th><th>Suppression</th></tr>
+            {% for liaison in liaisons %}
+            <tr><td>{{ liaison['source_nom'] }}</td><td>{{ liaison['type_liaison'] }}</td><td>{{ liaison['cible_nom'] }}</td><td>{{ liaison['poids'] }}</td><td>{{ liaison['conservation'] }}</td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_liaison"><input type="hidden" name="id_liaison" value="{{ liaison['id'] }}"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<section class="bloc">
+    <h3>Matrice d'adjacence</h3>
+    <div class="zone-defilement">
+        <table class="tableau-large">
+            <tr>
+                <th></th>
+                {% for nom in matrice['noms'] %}
+                <th>{{ nom }}</th>
+                {% endfor %}
+            </tr>
+            {% for ligne in matrice['lignes'] %}
+            <tr>
+                <th>{{ ligne['nom'] }}</th>
+                {% for valeur in ligne['valeurs'] %}
+                <td>{{ valeur }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Simulation</h2>
+    <p>Un evenement suit l'idee <strong>si ... alors faire ...</strong>. Un paterne agit a une frequence. Seuls les objets choisis sont mis en avant dans le resultat.</p>
+</section>
+<div class="grille-simulation-principale">
+    <section class="bloc">
+        <h3>Lancer la simulation</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="simuler">
+            <label>Nombre de tours</label><input name="nb_tours" value="{{ nb_tours }}">
+            <div class="ligne-formulaire compacte">
+                <div>
+                    <label>Valeur d'un tour</label><input name="valeur_tour" value="{{ valeur_tour }}">
+                </div>
+                <div>
+                    <label>Unite du tour</label>
+                    <select name="unite_tour">{% for unite in unites %}<option value="{{ unite['nom'] }}" {% if unite['nom'] == unite_tour %}selected{% endif %}>{{ unite['nom'] }}</option>{% endfor %}</select>
+                </div>
+            </div>
+            <label>Selection des objets a observer</label>
+            <select name="objets_observes" multiple size="12" class="grand-select">{% for objet in objets %}<option value="{{ objet['nom'] }}" {% if objet['nom'] in selection_objets %}selected{% endif %}>{{ objet['nom'] }}</option>{% endfor %}</select>
+            <label>Ajout rapide des objets a observer</label>
+            <textarea name="objets_rapides" rows="5" placeholder="Usine&#10;Client&#10;Colis"></textarea>
+            <p class="note">Tu peux choisir dans la liste ou saisir plusieurs noms rapidement.</p>
+            <button type="submit" class="btn-mini">Simuler</button>
+        </form>
+    </section>
+
+    <section class="bloc">
+        <h3>Resultat</h3>
+        {% if resultat %}
+            <div class="graphique-simulation zone-svg">{{ resultat.graphique|safe }}</div>
+            <div class="journal journal-compact">
+                {% for ligne in resultat.historique %}
+                <article class="carte-journal compacte-carte-journal">
+                    <div class="entete-tour">
+                        <h4>Tour {{ ligne.tour }}</h4>
+                        <span class="badge-temps">Temps ecoule : {{ ligne.temps }}</span>
+                    </div>
+                    <p>{% if ligne.actions %}{{ ligne.actions|join(' ; ') }}{% else %}aucune action{% endif %}</p>
+                   {% if ligne.observations %}
+                    <div class="entete-tour">
+                        <span class="badge-temps">
+                        Observations :
+                            {% for nom_objet, colonnes in ligne.observations.items() %}
+                            {{ nom_objet }} :
+                            {% for nom_colonne, valeur in colonnes.items() %}
+                            {{ nom_colonne }} = {{ valeur }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                            {% if not loop.last %} ; {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="note">Choisir des objets puis lancer la simulation.</p>
+        {% endif %}
+    </section>
+</div>
+
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Evenements</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_evenement">
+            <label>Nom</label><input name="nom" placeholder="Commande">
+            <label>Objet cause</label><select name="objet_cause_id">{% for objet in objets_catalogue %}<option value="{{ objet['id'] }}">{{ objet['nom'] }}({{ objet['nom_table'] }})</option>{% endfor %}</select>
+            <label>Colonne observee</label><input name="colonne_cause" value="valeur">
+            <label>Operateur</label><select name="operateur"><option>=</option><option>&gt;</option><option>&lt;</option></select>
+            <label>Valeur cause</label><input name="valeur_cause" value="5">
+            <label>Objet effet</label><select name="objet_effet_id">{% for objet in objets_catalogue %}<option value="{{ objet['id'] }}">{{ objet['nom']}}({{ objet['nom_table'] }})</option>{% endfor %}</select>
+            <label>Colonne modifiee</label><input name="colonne_effet" value="valeur">
+            <label>Action</label><select name="action_effet"><option value="op">operation</option><option value="change">changer</option><option value="inv">inversion</option></select>
+            <label>Valeur effet</label><input name="valeur_effet" value="+1">
+            <label>Probabilite</label><input name="proba" value="1">
+            <label>A partir du tour</label><input name="arrivee" value="0">
+            <label>Propagation</label><input name="propagation" value="0" placeholder="0, 1, 2 ou all">
+            <button type="submit" class="btn-mini">Ajouter l'evenement</button>
+        </form>
+        <div class="zone-defilement-hauteur zone-defilement-hauteur-petite">
+            <table class="tableau-large">
+                <tr><th>Nom</th><th>Si</th><th>Faire</th><th>Etat</th><th>Action</th><th>Suppression</th></tr>
+                {% for evenement in evenements %}
+                <tr>
+                    <td>{{ evenement['nom'] }}</td>
+                    <td>{{ evenement['objet_cause_nom'] }}.{{ evenement['colonne_cause'] }} {{ evenement['operateur'] }} {{ evenement['valeur_cause'] }}</td>
+                    <td>{{ evenement['objet_effet_nom'] }}.{{ evenement['colonne_effet'] }} {{ evenement['action'] }} {{ evenement['valeur_effet'] }}</td>
+                    <td>{{ 'actif' if evenement['actif'] == 1 else 'off' }}</td>
+                    <td><form method="post" class="inline"><input type="hidden" name="action" value="changer_etat_evenement"><input type="hidden" name="id" value="{{ evenement['id'] }}"><input type="hidden" name="actif" value="{{ 0 if evenement['actif'] == 1 else 1 }}"><button type="submit" class="btn-mini">{{ 'Desactiver' if evenement['actif'] == 1 else 'Activer' }}</button></form></td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_evenement"><input type="hidden" name="id" value="{{ evenement['id'] }}"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+
+    <section class="bloc">
+        <h3>Paternes</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_paterne">
+            <label>Nom</label><input name="nom" placeholder="Production">
+            <label>Objet effet</label><select name="objet_effet_id">{% for objet in objets_catalogue %}<option value="{{ objet['id'] }}">{{ objet['nom'] }}({{ objet['nom_table'] }})</option>{% endfor %}</select>
+            <label>Colonne</label><input name="colonne_effet" value="valeur">
+            <label>Action</label><select name="action_effet"><option value="op">operation</option><option value="change">changer</option><option value="inv">inversion</option></select>
+            <label>Valeur effet</label><input name="valeur_effet" value="+1">
+            <label>Frequence</label><input name="frequence" value="2">
+            <button type="submit" class="btn-mini">Ajouter le paterne</button>
+        </form>
+        <div class="zone-defilement-hauteur zone-defilement-hauteur-petite">
+            <table class="tableau-large">
+                <tr><th>Nom</th><th>Faire</th><th>Frequence</th><th>Etat</th><th>Action</th><th>Suppression</th></tr>
+                {% for paterne in paternes %}
+                <tr>
+                    <td>{{ paterne['nom'] }}</td>
+                    <td>{{ paterne['objet_effet_nom'] }}.{{ paterne['colonne_effet'] }} {{ paterne['action'] }} {{ paterne['valeur_effet'] }}</td>
+                    <td>{{ paterne['frequence'] }}</td>
+                    <td>{{ 'actif' if paterne['actif'] == 1 else 'off' }}</td>
+                    <td><form method="post" class="inline"><input type="hidden" name="action" value="changer_etat_paterne"><input type="hidden" name="id" value="{{ paterne['id'] }}"><input type="hidden" name="actif" value="{{ 0 if paterne['actif'] == 1 else 1 }}"><button type="submit" class="btn-mini">{{ 'Desactiver' if paterne['actif'] == 1 else 'Activer' }}</button></form></td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_paterne"><input type="hidden" name="id" value="{{ paterne['id'] }}"><button type="submit" class="btn-mini">Supprimer</button></form></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

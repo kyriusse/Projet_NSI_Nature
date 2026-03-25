@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Composants</h2>
+    <p>On peut ajouter des compositions comme dans cp{ } et observer le resultat sous forme d'arbre.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Ajout simple</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajouter_composant">
+            <label>Objet parent</label><select name="parent_nom">{% for objet in objets_catalogue %}<option value="{{ objet.nom }}">{{ objet.nom }}</option>{% endfor %}</select>
+            <label>Composant</label><select name="enfant_nom">{% for objet in objets_catalogue %}<option value="{{ objet.nom }}">{{ objet.nom }}</option>{% endfor %}</select>
+            <label>Quantite</label><input name="quantite" value="1">
+            <button type="submit" class="btn-mini">Ajouter</button>
+        </form>
+
+        <h3>Ajout rapide</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="ajout_rapide_cp">
+            <label>Objet parent</label><input name="parent_rapide" placeholder="Chaise">
+            <p class="note">Exemple : Pied ; Dossier ; Assise ou Vis(12) ; Ecran</p>
+            <textarea name="bloc_cp" rows="6" placeholder="Pied ; Dossier ; Assise"></textarea>
+            <button type="submit" class="btn-mini">Executer</button>
+        </form>
+
+        <h3>Fusion</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="fusion">
+            <label>Expression de fusion</label><input name="fusion" placeholder="A + B + 2C">
+            <label>Nom du nouvel objet</label><input name="nom_resultat" placeholder="Produit_final">
+            <button type="submit" class="btn-mini">Fusionner</button>
+        </form>
+    </section>
+
+    <section class="bloc">
+        <h3>Arbre des composants</h3>
+        <form method="get" class="carte-formulaire compacte-formulaire">
+            <label>Objet racine</label><select name="racine">{% for objet in objets_catalogue %}<option value="{{ objet.nom }}" {% if objet.nom == racine %}selected{% endif %}>{{ objet.nom }}</option>{% endfor %}</select>
+            <label>Nombre maximal de branches visibles</label><input name="max_branches" value="{{ max_branches }}">
+            <button type="submit" class="btn-mini">Afficher</button>
+        </form>
+        <div class="zone-defilement-hauteur arbre-html">{{ arbre|safe }}</div>
+    </section>
+</div>
+<section class="bloc">
+    <h3>Tableau des compositions</h3>
+    <div class="zone-defilement-hauteur">
+        <table class="tableau-large">
+            <tr><th>Objet parent</th><th>Composant</th><th>Quantite</th><th>Suppression</th></tr>
+            {% for ligne in compositions %}
+            <tr><td>{{ ligne.parent_nom }}</td><td>{{ ligne.enfant_nom }}</td><td>{{ ligne.quantite }}</td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_composition"><input type="hidden" name="id_composition" value="{{ ligne.id }}"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+{% endblock %}

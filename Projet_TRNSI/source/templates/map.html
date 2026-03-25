@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block contenu %}
+<section class="bloc bloc-compact">
+    <h2>Page Map</h2>
+    <p>La carte sert a associer des coordonnees x et y a un objet, puis a afficher aussi les chemins crees dans Frank SQL avec ch{ }.</p>
+</section>
+<div class="grille-2">
+    <section class="bloc">
+        <h3>Positionner un objet</h3>
+        <form method="post" class="carte-formulaire compacte-formulaire">
+            <input type="hidden" name="action" value="enregistrer_position">
+            <label>Objet</label><select name="objet_id">{% for objet in objets_catalogue %}<option value="{{ objet.id }}">{{ objet.nom }}</option>{% endfor %}</select>
+            <label>y</label><input name="latitude" id="champ-y" placeholder="87">
+            <label>x</label><input name="longitude" id="champ-x" placeholder="152">
+            <label>Lieu</label><input name="lieu" placeholder="Port, usine, ville...">
+            <button type="submit" class="btn-mini">Enregistrer la position</button>
+        </form>
+        <hr>
+        <h3>Chemins enregistres</h3>
+        <div class="zone-defilement-hauteur">
+            <table class="tableau-large">
+                <tr><th>Chemin</th><th>Afficher</th><th>Suppression</th></tr>
+                {% for chemin in chemins %}
+                <tr>
+                    <td>{{ chemin.nom }}</td>
+                    <td><a class="btn-mini" href="{{ url_for('page_map', chemin_id=chemin.id) }}">Voir</a></td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_chemin"><input type="hidden" name="id_chemin" value="{{ chemin.id }}"><button type="submit" class="btn-mini">Supprimer</button></form></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </section>
+    <section class="bloc">
+        <h3>Carte</h3>
+        <div style="position:relative;width:1000px;max-width:100%;height:520px;border:1px solid #334155;background:#0f172a;overflow:auto;">
+            <svg id="plan-map" viewBox="0 0 1000 520" style="width:100%;height:100%;background:#111827;">
+                <image href="{{ url_for('static', filename='carte.png') }}" x="0" y="0" width="1000" height="520" preserveAspectRatio="none"></image>
+                <rect x="0" y="0" width="1000" height="520" fill="#0b1220" opacity="0.25"></rect>
+                {% if points_chemin %}
+                <polyline fill="none" stroke="#f59e0b" stroke-width="4" points="{% for point in points_chemin %}{{ point.x }},{{ point.y }} {% endfor %}"></polyline>
+                {% endif %}
+                {% for point in points %}
+                <circle cx="{{ point.x }}" cy="{{ point.y }}" r="6" fill="#38bdf8"></circle>
+                <text x="{{ point.x + 8 }}" y="{{ point.y - 8 }}" fill="#e2e8f0" font-size="13">{{ point.nom }}</text>
+                {% endfor %}
+                {% for point in points_chemin %}
+                <circle cx="{{ point.x }}" cy="{{ point.y }}" r="5" fill="#f59e0b"></circle>
+                <text x="{{ point.x + 8 }}" y="{{ point.y + 16 }}" fill="#fde68a" font-size="12">{{ point.nom_point }}</text>
+                {% endfor %}
+            </svg>
+        </div>
+        <p class="note">Le chemin selectionne apparait en orange. La carte de fond vient du fichier static/carte.png.</p>
+    </section>
+</div>
+<section class="bloc">
+    <h3>Tableau des positions</h3>
+    <div class="zone-defilement-hauteur">
+        <table class="tableau-large">
+            <tr><th>Objet</th><th>y</th><th>x</th><th>Lieu</th><th>Suppression</th></tr>
+            {% for ligne in positions %}
+            <tr><td>{{ ligne.nom }}</td><td>{{ ligne.latitude }}</td><td>{{ ligne.longitude }}</td><td>{{ ligne.lieu }}</td><td><form method="post" class="inline"><input type="hidden" name="action" value="supprimer_position"><input type="hidden" name="id_position" value="{{ ligne.id }}"><button type="submit" class="btn-mini">Supprimer</button></form></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+
+<script>
+const planMap = document.getElementById('plan-map');
+if (planMap) {
+    // Quand on clique sur la carte
+    planMap.addEventListener('click', function(event) {
+        // Création d’un point dans le repère SVG
+        const point = planMap.createSVGPoint();
+        // Coordonnées du clic (écran) 
+        point.x = event.clientX; 
+        point.y = event.clientY;
+        // Conversion écran vers coordonnées SVG
+        const repere = point.matrixTransform(planMap.getScreenCTM().inverse());
+        // Récupération des champs du formulaire
+        const champX = document.getElementById('champ-x');
+        const champY = document.getElementById('champ-y');
+        // Mise à jour des champs avec arrondi
+        if (champX) {
+            champX.value = Math.round(repere.x);
+        }
+        if (champY) {
+            champY.value = Math.round(repere.y);
+        }
+    });
+}
+</script>
+
+{% endblock %}
